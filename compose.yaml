@@ -1,14 +1,22 @@
 services:
-  hono_ms:
+  card_ms:
     build: 
       context: ./Atomics/Card
-      dockerfile: Hono.Dockerfile
+      dockerfile: Card.Dockerfile
     ports:
-      - '3000:3000'
+      - '3001:3001'
     env_file:
-      - ./Atomics/Card/.env.docker
+      - .env.docker
+  wallet_ms:
+    build: 
+      context: ./Atomics/Wallet
+      dockerfile: Wallet.Dockerfile
+    ports:
+      - '3002:3002'
+    env_file:
+      - .env.docker
   
-  postgres:
+  carddb:
     image: postgres:latest
     ports:
       - 5432:5432

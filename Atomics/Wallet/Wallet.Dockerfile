@@ -3,7 +3,7 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json .env ./
+COPY package.json package-lock.json ./
 
 RUN npm ci
 
@@ -30,6 +30,6 @@ RUN npm run build
 # USER appuser
 
 # ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 3002
 
 CMD ["npm", "run", "dev"]
