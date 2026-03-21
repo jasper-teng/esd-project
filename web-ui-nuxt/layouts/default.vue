@@ -12,27 +12,31 @@
           </div>
         </NuxtLink>
         <nav class="nav-links">
-          <NuxtLink to="/" class="nl">
-            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-            Home
-          </NuxtLink>
-          <NuxtLink to="/transit/tap-in" class="nl nl--teal">
-            <svg viewBox="0 0 24 24"><polyline points="9,11 12,14 22,4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-            Tap In
-          </NuxtLink>
-          <NuxtLink to="/transit/tap-out" class="nl nl--teal">
-            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Tap Out
-          </NuxtLink>
-          <NuxtLink to="/concession/apply" class="nl nl--yellow">
-            <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-8 10 8M6 22V12h12v10"/></svg>
-            Concession
-          </NuxtLink>
-          <NuxtLink to="/lost-card/report" class="nl nl--red">
-            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Lost Card
-          </NuxtLink>
-        </nav>
+  <NuxtLink to="/" class="nl">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Home
+  </NuxtLink>
+  <NuxtLink to="/transit" class="nl nl--teal">
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    Transit
+  </NuxtLink>
+  <NuxtLink to="/concession/apply" class="nl nl--yellow">
+  <svg viewBox="0 0 24 24">
+    <polygon points="12,2 22,8.5 12,15 2,8.5"/>
+    <polyline points="6,11.5 6,18 12,21 18,18 18,11.5"/>
+  </svg>
+  Concession
+</NuxtLink>
+  <NuxtLink to="/lost-card/report" class="nl nl--red">
+  <svg viewBox="0 0 24 24">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+    <line x1="9" y1="14" x2="15" y2="17"/>
+    <line x1="15" y1="14" x2="9" y2="17"/>
+  </svg>
+  Lost Card
+</NuxtLink>
+</nav>
       </div>
     </header>
 
@@ -47,14 +51,14 @@
 </template>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --font: 'DM Sans', sans-serif;
+  --font: 'Poppins', sans-serif;
 
-  --bg: #f6f5fb;
+  --bg: #fcf3ed;
   --surface: #ffffff;
   --border: #e8e4f0;
 
@@ -90,7 +94,7 @@
 
 body {
   font-family: var(--font);
-  background: var(--bg);
+  background: #b6c7e0;
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
@@ -103,7 +107,7 @@ body {
 
 /* ── Navbar ── */
 .navbar {
-  background: var(--surface);
+  background: #4f62b9;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -132,7 +136,7 @@ body {
 .brand-logo {
   width: 34px;
   height: 34px;
-  background: var(--purple);
+  background: #8b81ca;
   border-radius: 9px;
   display: flex;
   align-items: center;
@@ -143,8 +147,8 @@ body {
 .brand-logo svg { width: 18px; height: 18px; }
 
 .brand-text { display: flex; flex-direction: column; }
-.brand-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; line-height: 1.2; }
-.brand-sub  { font-size: 11px; color: var(--muted); font-weight: 500; line-height: 1.2; }
+.brand-name { font-size: 15px; font-weight: 600; color: #ffffff; letter-spacing: -0.2px; line-height: 1.2; }
+.brand-sub  { font-size: 11px; color: rgb(155, 198, 254); font-weight: 500; line-height: 1.2; }
 
 .nav-links { display: flex; gap: 2px; }
 
@@ -157,7 +161,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
-  color: var(--muted);
+  color: #ffffff;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
@@ -192,8 +196,8 @@ body {
   text-align: center;
   padding: 18px;
   font-size: 12px;
-  color: var(--hint);
+  color: #ffffff;
   border-top: 1px solid var(--border);
-  background: var(--surface);
+  background: #4f62b9;
 }
 </style>

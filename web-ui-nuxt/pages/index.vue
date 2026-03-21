@@ -3,41 +3,42 @@
 
     <div class="home-header">
       <div>
-        <h1>Good morning!</h1>
-        <p>What would you like to do today?</p>
+        <h1>Welcome!</h1>
+        <p>How may we assist you today?</p>
       </div>
     </div>
 
-    <!-- Scenario cards -->
     <div class="scenario-grid">
-      <NuxtLink to="/transit/tap-in" class="sc-card">
-        <img src="/icons/tap-in.svg" class="sc-img" alt="" />
-        <div class="sc-title">Tap In</div>
-        <div class="sc-desc">Start a journey at any MRT or bus stop</div>
-      </NuxtLink>
-
-      <NuxtLink to="/transit/tap-out" class="sc-card">
-        <img src="/icons/tap-out.svg" class="sc-img" alt="" />
-        <div class="sc-title">Tap Out</div>
-        <div class="sc-desc">End your journey and pay fare</div>
+      <NuxtLink to="/transit" class="sc-card">
+        <img src="/icons/transit.svg" class="sc-img" alt="" />
+        <div class="sc-text">
+          <div class="sc-title">Transit</div>
+          <div class="sc-desc">Tap in or out at any MRT or bus stop</div>
+        </div>
       </NuxtLink>
 
       <NuxtLink to="/concession/apply" class="sc-card">
         <img src="/icons/concession.svg" class="sc-img" alt="" />
-        <div class="sc-title">Apply for Concession</div>
-        <div class="sc-desc">Get student fare discount on your card</div>
+        <div class="sc-text">
+          <div class="sc-title">Apply for Concession</div>
+          <div class="sc-desc">Get student fare discount on your card</div>
+        </div>
       </NuxtLink>
 
       <NuxtLink to="/concession/status" class="sc-card">
         <img src="/icons/status.svg" class="sc-img" alt="" />
-        <div class="sc-title">Check Application Status</div>
-        <div class="sc-desc">View your concession application</div>
+        <div class="sc-text">
+          <div class="sc-title">Check Application Status</div>
+          <div class="sc-desc">View your concession application</div>
+        </div>
       </NuxtLink>
 
       <NuxtLink to="/lost-card/report" class="sc-card">
         <img src="/icons/lost-card.svg" class="sc-img" alt="" />
-        <div class="sc-title">Report Lost Card</div>
-        <div class="sc-desc">Block card and transfer balance</div>
+        <div class="sc-text">
+          <div class="sc-title">Report Lost Card</div>
+          <div class="sc-desc">Block card and transfer balance</div>
+        </div>
       </NuxtLink>
     </div>
 
@@ -118,29 +119,24 @@ async function handleLookup(id) {
 .home-header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
 .home-header p  { font-size: 14px; color: var(--muted); margin-top: 3px; }
 
-/* ── Scenario grid ── */
 .scenario-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  justify-content: center;
   gap: 24px;
+  flex-wrap: wrap;
 }
 
-
 .sc-card {
+  width: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
-  padding: 16px 8px;
-  border-radius: var(--r);
+  gap: 0;
   text-decoration: none;
   background: transparent;
   border: none;
-  transition: transform 0.15s;
-}
-.sc-card:hover {
-  transform: translateY(-2px);
+  cursor: pointer;
 }
 
 .sc-img {
@@ -148,33 +144,46 @@ async function handleLookup(id) {
   max-width: 100%;
   height: auto;
   object-fit: contain;
+  transition: transform 0.2s ease;
+}
+.sc-card:hover .sc-img { transform: scale(1.03); }
+
+.sc-text {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .sc-title {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.3;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1.4;
+  transition: color 0.2s;
 }
+.sc-card:hover .sc-title { color: #4c84ce; }
 
 .sc-desc {
   font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
   line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+.sc-card:hover .sc-desc { opacity: 1; }
 
 /* ── Lookup card ── */
 .lookup-card {
-  background: var(--surface); border: 1px solid var(--border);
+  background: #eef6ff; border: 1px solid var(--border);
   border-radius: var(--r); padding: 22px;
   display: flex; flex-direction: column; gap: 16px; max-width: 480px;
 }
 
 .section-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
 
-.card-result {
-  border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
-}
+.card-result { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 
 .result-top {
   background: var(--purple-l); padding: 16px;

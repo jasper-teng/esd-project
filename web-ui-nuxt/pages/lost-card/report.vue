@@ -2,7 +2,12 @@
   <div class="page">
     <div class="page-header red">
       <div class="page-icon">
-        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="10" y2="15"/></svg>
+<svg viewBox="0 0 24 24">
+  <rect x="2" y="5" width="20" height="14" rx="2"/>
+  <line x1="2" y1="10" x2="22" y2="10"/>
+  <line x1="9" y1="14" x2="15" y2="17"/>
+  <line x1="15" y1="14" x2="9" y2="17"/>
+</svg>
       </div>
       <div>
         <h1>Report Lost Card</h1>

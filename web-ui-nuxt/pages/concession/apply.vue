@@ -2,8 +2,11 @@
   <div class="page">
     <div class="page-header yellow">
       <div class="page-icon">
-        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-8 10 8M6 22V12h12v10"/></svg>
-      </div>
+<svg viewBox="0 0 24 24">
+  <path d="M22 9L12 4 2 9l10 5 10-5z"/>
+  <path d="M6 11.5V17c0 0 2 2 6 2s6-2 6-2v-5.5"/>
+  <line x1="22" y1="9" x2="22" y2="14"/>
+</svg>     </div>
       <div>
         <h1>Student Concession Application</h1>
         <p>Submit your application — your institution will verify enrollment</p>
