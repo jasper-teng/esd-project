@@ -11,7 +11,7 @@ const app = new Hono();
 const portno:number = process.env.CARD_ATOM_PORT ? Number(process.env.CARD_ATOM_PORT) : 3000; //default or env
 
 app.get('/', (c) => {
-  return c.text('Hello Hono!')
+  return c.text('Hello test card!')
 })
 
 app.get('/test', async (c) => {
@@ -27,3 +27,4 @@ serve({
 }, (info) => {
   console.log(`Server is running on http://localhost:${portno}`)
 })
+
