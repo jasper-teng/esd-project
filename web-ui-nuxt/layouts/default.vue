@@ -39,11 +39,18 @@
           <div v-if="notifOpen" class="notif-panel">
             <div class="notif-header">
               <span>Notifications</span>
-              <button class="notif-clear" @click="unread = 0">Mark all read</button>
+              <button class="notif-clear" @click="markAllRead">Mark all read</button>
             </div>
             <div class="notif-list">
-              <div v-for="n in notifications" :key="n.id" class="notif-item" :class="{ unread: n.unread }">
+              <div
+                v-for="n in notifications"
+                :key="n.id"
+                class="notif-item"
+                :class="{ unread: n.unread }"
+                @click="markRead(n)"
+              >
                 <div v-if="n.unread" class="notif-dot"></div>
+                <div v-else class="notif-dot-placeholder"></div>
                 <div class="notif-body">
                   <div class="notif-title">{{ n.title }}</div>
                   <div class="notif-msg">{{ n.message }}</div>
@@ -62,16 +69,15 @@
     </main>
 
     <footer class="footer">
-      <p>SimplyGo EZ-Link Demo &mdash; ESD Project</p>
+      <p>SimplyGo EZ-Link Demo - ESD Project</p>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const notifOpen = ref(false)
-const unread = ref(3)
 
 const notifications = ref([
   { id: 1, title: 'Tap-in successful', message: 'You tapped in at NS1 Jurong East.', time: '2 min ago', unread: true },
@@ -79,6 +85,16 @@ const notifications = ref([
   { id: 3, title: 'Concession approved', message: 'Your student concession is now active.', time: '1 hour ago', unread: true },
   { id: 4, title: 'Trip completed', message: 'Fare of $1.42 deducted. Balance: $8.58.', time: 'Yesterday', unread: false },
 ])
+
+const unread = computed(() => notifications.value.filter(n => n.unread).length)
+
+function markRead(n) {
+  n.unread = false
+}
+
+function markAllRead() {
+  notifications.value.forEach(n => n.unread = false)
+}
 
 function handleClickOutside(e) {
   if (!e.target.closest('.notif-wrap')) notifOpen.value = false
@@ -122,7 +138,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 body {
   font-family: var(--font);
-  background: #b6c7e0;
+  background: #d2e0f6;
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
@@ -181,10 +197,13 @@ body {
   white-space: nowrap;
 }
 .nl svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-.nl:hover, .nl.router-link-active           { background: var(--purple-l); color: var(--purple-d); }
-.nl--teal:hover, .nl--teal.router-link-active   { background: var(--teal-l);   color: var(--teal-d); }
-.nl--yellow:hover, .nl--yellow.router-link-active { background: var(--yellow-l); color: var(--yellow-d); }
-.nl--red:hover, .nl--red.router-link-active     { background: var(--red-l);    color: var(--red-d); }
+.nl:hover, .nl.router-link-active,
+.nl--teal:hover, .nl--teal.router-link-active,
+.nl--yellow:hover, .nl--yellow.router-link-active,
+.nl--red:hover, .nl--red.router-link-active {
+  background: var(--purple-l);
+  color: var(--purple-d);
+}
 
 /* ── Notification ── */
 .notif-wrap { position: relative; flex-shrink: 0; }
@@ -228,19 +247,26 @@ body {
 }
 .notif-clear:hover { text-decoration: underline; }
 
-.notif-list { max-height: 300px; overflow-y: auto; }
+.notif-list { max-height: 320px; overflow-y: auto; }
 
 .notif-item {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 12px 16px; border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
+  transition: background 0.2s; cursor: pointer; background: var(--surface);
 }
 .notif-item:last-child { border-bottom: none; }
-.notif-item:hover { background: var(--bg); }
+.notif-item:hover { background: #f4f3fd; }
 .notif-item.unread { background: var(--purple-l); }
 .notif-item.unread:hover { background: #e0dcfa; }
 
-.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; margin-top: 5px; }
+.notif-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--purple); flex-shrink: 0; margin-top: 5px;
+}
+.notif-dot-placeholder {
+  width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px;
+}
+
 .notif-title { font-size: 13px; font-weight: 600; color: var(--text); }
 .notif-msg   { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
 .notif-time  { font-size: 11px; color: var(--hint); margin-top: 4px; }

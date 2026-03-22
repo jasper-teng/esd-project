@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <div class="page-header teal">
+    <div class="page-header transit-header">
       <div class="page-icon">
         <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="10" y2="15"/></svg>
       </div>
@@ -62,12 +62,12 @@
           </div>
 
           <button class="btn btn--teal" :disabled="!form.cardId.trim() || !form.station || loading" @click="mode === 'in' ? handleTapIn() : handleTapOut()">
-            {{ loading ? 'Processing...' : mode === 'in' ? 'Tap in now' : 'Tap out' }}
+            {{ loading ? 'Processing...' : mode === 'in' ? 'Tap In' : 'Tap Out' }}
           </button>
         </div>
       </div>
 
-      <!-- Right: MRT Map — expanded by default, collapsible -->
+      <!-- Right: MRT Map -->
       <div class="map-section">
         <div class="map-header" @click="mapOpen = !mapOpen">
           <span>MRT Network Map</span>
@@ -82,21 +82,29 @@
 
     </div>
 
-    <transition name="slide-up">
-      <div v-if="result" class="result-panel" :class="result.type">
-        <div class="result-icon">
-          <svg v-if="result.type === 'success'" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
-          <svg v-else viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-        </div>
-        <div class="result-body">
-          <div class="result-title">{{ result.title }}</div>
-          <div class="result-msg">{{ result.message }}</div>
+    <!-- Modal popup -->
+    <transition name="modal-fade">
+      <div v-if="result" class="modal-overlay" @click.self="result = null">
+        <div class="modal-box" :class="result.type">
+          <button class="modal-close" @click="result = null">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+
+          <div class="modal-icon">
+            <svg v-if="result.type === 'success'" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+            <svg v-else viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          </div>
+
+          <div class="modal-title">{{ result.title }}</div>
+          <div class="modal-msg">{{ result.message }}</div>
+
           <div v-if="result.details" class="detail-table">
             <div v-for="(v, k) in result.details" :key="k" class="detail-row">
               <span class="detail-key">{{ k }}</span>
               <span class="detail-val">{{ v }}</span>
             </div>
           </div>
+
           <div v-if="result.fare" class="fare-breakdown">
             <div class="fare-row"><span>Distance</span><span>{{ result.fare.distanceKm }} km</span></div>
             <div class="fare-row"><span>Base fare</span><span>${{ result.fare.baseFare }}</span></div>
@@ -106,12 +114,19 @@
             <div class="fare-row fare-row--total"><span>Total charged</span><span>${{ result.fare.total }}</span></div>
             <div class="fare-row fare-row--balance"><span>Remaining balance</span><span>${{ result.fare.newBalance }}</span></div>
           </div>
-          <div v-if="result.incompleteSettled" class="sub-alert sub-alert--yellow">
-            Unsettled trip detected — maximum fare of <strong>${{ result.incompleteSettled }}</strong> deducted automatically.
+
+          <div v-if="result.incompleteSettled" class="sub-alert sub-alert--lilac">
+            <strong>Incomplete trip detected</strong> — Previous journey was not tapped out. Maximum fare of <strong>${{ result.incompleteSettled }}</strong> deducted and trip settled automatically.
           </div>
-          <div v-if="result.autoTopUp" class="sub-alert sub-alert--purple">
-            Balance was below $5.00 — Auto Top-Up of <strong>${{ result.autoTopUp }}</strong> triggered.
+          <div v-if="result.autoTopUp" class="sub-alert sub-alert--lilac">
+            <strong>Auto Top-Up triggered</strong> — Balance was below $5.00. <strong>${{ result.autoTopUp }}</strong> credited via your linked bank account.
           </div>
+          <div v-if="result.type === 'success'" class="notify-note">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Notification sent to your registered email.
+          </div>
+
+          <button class="modal-dismiss" @click="result = null">Done</button>
         </div>
       </div>
     </transition>
@@ -121,8 +136,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-const mode = ref('in')
-const mapOpen = ref(true)
+const mode        = ref('in')
+const mapOpen     = ref(true)
 const dropdownOpen = ref(false)
 const dropdownRef  = ref(null)
 const form    = ref({ cardId: '', station: '' })
@@ -155,56 +170,172 @@ function handleClickOutside(e) {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
-const MOCK_CARDS = {
-  'EZ-1234567890': { balance: 12.50, status: 'active', auto_topup: true,  incomplete: false, name: 'Alex Tan' },
-  'EZ-0987654321': { balance: 3.20,  status: 'active', auto_topup: true,  incomplete: false, name: 'Jamie Lee' },
-  'EZ-LOW':        { balance: 2.00,  status: 'active', auto_topup: false, incomplete: false, name: 'Chris Ng' },
-  'EZ-INCOMPLETE': { balance: 8.00,  status: 'active', auto_topup: false, incomplete: true,  name: 'Dana Lim' },
-  'EZ-1111111111': { balance: 0,     status: 'lost',   auto_topup: false, incomplete: false, name: 'Sam Wong' },
+// ── Mock data (simulating microservices) ──
+
+// Card Service: card metadata
+const CARD_SERVICE = {
+  'EZ-1234567890': { status: 'active', concession_type: 'adult',   name: 'Alex Tan',   auto_topup: true  },
+  'EZ-0987654321': { status: 'active', concession_type: 'student', name: 'Jamie Lee',  auto_topup: true  },
+  'EZ-LOW':        { status: 'active', concession_type: 'adult',   name: 'Chris Ng',   auto_topup: false },
+  'EZ-1111111111': { status: 'lost',   concession_type: 'adult',   name: 'Sam Wong',   auto_topup: false },
 }
 
-const MOCK_TRIPS = {
-  'EZ-1234567890': { origin: 'NS1 Jurong East',  tapInTime: '07:30', concession: 'adult',   balance: 12.50 },
-  'EZ-0987654321': { origin: 'EW23 Clementi',    tapInTime: '08:10', concession: 'student', balance: 3.20  },
-  'EZ-TRANSFER':   { origin: 'EW21 Buona Vista', tapInTime: '07:40', concession: 'adult',   balance: 9.00, isTransfer: true, journeyDist: 4.2 },
-}
+// Wallet Service: balances
+const WALLET_SERVICE = ref({
+  'EZ-1234567890': 12.50,
+  'EZ-0987654321': 3.20,
+  'EZ-LOW':        2.00,
+  'EZ-1111111111': 0,
+})
 
+// Trip Service: active/incomplete trips
+const TRIP_SERVICE = ref({
+  'EZ-TRANSFER': { origin: 'EW21 Buona Vista', tapInTime: '07:40', concession_type: 'adult', isTransfer: true, journeyDist: 4.2, status: 'in_progress' },
+})
+
+const MINIMUM_BALANCE = 5.00
+const MAX_FARE        = 2.40
+const AUTO_TOPUP_AMT  = 10.00
+
+// ── Phase 1: Tap-In ──
 async function handleTapIn() {
   loading.value = true; result.value = null
-  await new Promise(r => setTimeout(r, 600))
-  const c = MOCK_CARDS[form.value.cardId.trim()]
-  if (!c) { result.value = { type: 'error', title: 'Card not found', message: `No card found with ID "${form.value.cardId}".` }; loading.value = false; return }
-  if (c.status !== 'active') { result.value = { type: 'error', title: 'Card unavailable', message: `This card is "${c.status}" and cannot be used.` }; loading.value = false; return }
-  let balance = c.balance, incompleteSettled = null, autoTopUp = null
-  if (c.incomplete) { balance -= 2.40; incompleteSettled = '2.40' }
-  if (balance < 5) {
-    if (c.auto_topup) { balance += 10; autoTopUp = '10.00' }
-    else { result.value = { type: 'error', title: 'Insufficient balance', message: 'Balance below $5.00 minimum. Auto top-up not enabled.', details: { 'Card holder': c.name, 'Balance': `$${balance.toFixed(2)}`, 'Minimum': '$5.00' }, incompleteSettled }; loading.value = false; return }
+  await new Promise(r => setTimeout(r, 700))
+
+  const cardId = form.value.cardId.trim()
+
+  // Step 2: Card Service — check card is valid and active
+  const card = CARD_SERVICE[cardId]
+  if (!card) {
+    result.value = { type: 'error', title: 'Card not found', message: `Card "${cardId}" does not exist. Try EZ-1234567890 or EZ-0987654321.` }
+    loading.value = false; return
   }
-  result.value = { type: 'success', title: 'Tap-in successful', message: `Welcome aboard, ${c.name}.`, details: { 'Card': form.value.cardId, 'Station': form.value.station, 'Balance': `$${balance.toFixed(2)}`, 'Time': new Date().toLocaleTimeString('en-SG') }, incompleteSettled, autoTopUp }
+  if (card.status !== 'active') {
+    result.value = { type: 'error', title: 'Access denied', message: `Card "${cardId}" is ${card.status} and cannot be used for travel.` }
+    loading.value = false; return
+  }
+
+  let balance = WALLET_SERVICE.value[cardId] ?? 0
+  let incompleteSettled = null
+  let autoTopUp = null
+
+  // Step 3 & 4: Trip Service — check for incomplete trip, settle if found (Phase 1.2)
+  const existingTrip = TRIP_SERVICE.value[cardId]
+  if (existingTrip) {
+    // Manage Incomplete Journey: deduct max fare
+    balance = Math.max(0, balance - MAX_FARE)
+    WALLET_SERVICE.value[cardId] = balance
+    incompleteSettled = MAX_FARE.toFixed(2)
+    delete TRIP_SERVICE.value[cardId]
+  }
+
+  // Step 5: Wallet Service — check balance >= minimum (Phase 1.1 auto top-up)
+  if (balance < MINIMUM_BALANCE) {
+    if (card.auto_topup) {
+      // Manage Auto-Top-Up: charge bank, credit wallet
+      balance += AUTO_TOPUP_AMT
+      WALLET_SERVICE.value[cardId] = balance
+      autoTopUp = AUTO_TOPUP_AMT.toFixed(2)
+    } else {
+      result.value = {
+        type: 'error', title: 'Insufficient balance',
+        message: `Balance $${balance.toFixed(2)} is below the $${MINIMUM_BALANCE.toFixed(2)} minimum. Auto top-up is not enabled on this card.`,
+        details: { 'Card holder': card.name, 'Current balance': `$${balance.toFixed(2)}`, 'Minimum required': `$${MINIMUM_BALANCE.toFixed(2)}` },
+        incompleteSettled,
+      }
+      loading.value = false; return
+    }
+  }
+
+  // Step 6: Trip Service — create new trip record
+  const tapInTime = new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
+  TRIP_SERVICE.value[cardId] = {
+    origin: form.value.station,
+    tapInTime,
+    concession_type: card.concession_type,
+    status: 'in_progress',
+  }
+
+  result.value = {
+    type: 'success', title: 'Access granted — tap-in successful',
+    message: `Welcome aboard, ${card.name}.`,
+    details: {
+      'Card ID':        cardId,
+      'Boarding station': form.value.station,
+      'Balance':        `$${balance.toFixed(2)}`,
+      'Tap-in time':    new Date().toLocaleTimeString('en-SG'),
+    },
+    incompleteSettled,
+    autoTopUp,
+  }
   loading.value = false
 }
 
-function calcFare(km, concession, tapInTime, isTransfer = false, journeyDist = 0) {
-  function deg(d) { return d <= 3.2 ? 0.77 + d * 0.12 : d <= 6.2 ? 0.77 + 3.2 * 0.12 + (d - 3.2) * 0.09 : 0.77 + 3.2 * 0.12 + 3.0 * 0.09 + (d - 6.2) * 0.07 }
+// ── Phase 2: Tap-Out ──
+function calcFare(km, concession_type, tapInTime, isTransfer = false, journeyDist = 0) {
+  function deg(d) {
+    return d <= 3.2 ? 0.77 + d * 0.12
+         : d <= 6.2 ? 0.77 + 3.2 * 0.12 + (d - 3.2) * 0.09
+         : 0.77 + 3.2 * 0.12 + 3.0 * 0.09 + (d - 6.2) * 0.07
+  }
   const base = Math.round((isTransfer ? deg(journeyDist + km) - deg(journeyDist) : deg(km)) * 100) / 100
   const [h, m] = tapInTime.split(':').map(Number)
-  const peak = (h < 7 || (h === 7 && m < 45)) ? Math.round(Math.min(0.50, base * 0.15) * 100) / 100 : 0
-  const conPct = concession === 'student' ? 70 : 0
+  const peak   = (h < 7 || (h === 7 && m < 45)) ? Math.round(Math.min(0.50, base * 0.15) * 100) / 100 : 0
+  const conPct = concession_type === 'student' ? 70 : 0
   const conDis = Math.round((base - peak) * conPct / 100 * 100) / 100
   const total  = Math.round((base - peak - conDis) * 100) / 100
-  return { distanceKm: km.toFixed(1), baseFare: base.toFixed(2), peakDiscount: peak > 0 ? peak.toFixed(2) : null, concessionDiscount: conDis > 0 ? conDis.toFixed(2) : null, concessionPct: conPct > 0 ? conPct : null, isTransfer, total: total.toFixed(2) }
+  return {
+    distanceKm: km.toFixed(1),
+    baseFare: base.toFixed(2),
+    peakDiscount: peak > 0 ? peak.toFixed(2) : null,
+    concessionDiscount: conDis > 0 ? conDis.toFixed(2) : null,
+    concessionPct: conPct > 0 ? conPct : null,
+    isTransfer,
+    total: total.toFixed(2),
+  }
 }
 
 async function handleTapOut() {
   loading.value = true; result.value = null
   await new Promise(r => setTimeout(r, 700))
-  const trip = MOCK_TRIPS[form.value.cardId.trim()]
-  if (!trip) { result.value = { type: 'error', title: 'No active trip found', message: `Card "${form.value.cardId}" has no active tap-in.` }; loading.value = false; return }
+
+  const cardId = form.value.cardId.trim()
+
+  // Step 2: Card Service — verify card
+  const card = CARD_SERVICE[cardId]
+  if (!card) {
+    result.value = { type: 'error', title: 'Card not found', message: `Card "${cardId}" does not exist.` }
+    loading.value = false; return
+  }
+
+  // Step 3: Trip Service — get in-progress trip
+  const trip = TRIP_SERVICE.value[cardId]
+  if (!trip) {
+    result.value = { type: 'error', title: 'No active trip found', message: `Card "${cardId}" has no active tap-in. Please tap in first.` }
+    loading.value = false; return
+  }
+
+  // Step 4: Trip Service — check journey continuity (transfer detection)
+  // Step 5: LTA Distance API — get distance (mocked)
   const distanceKm = parseFloat((2 + Math.random() * 12).toFixed(1))
-  const fare = calcFare(distanceKm, trip.concession, trip.tapInTime, trip.isTransfer, trip.journeyDist)
-  const newBalance = Math.max(0, trip.balance - parseFloat(fare.total))
-  result.value = { type: 'success', title: 'Journey complete', message: `${trip.origin} → ${form.value.station}`, fare: { ...fare, newBalance: newBalance.toFixed(2) } }
+
+  // Step 6: Fare Service — calculate fare
+  const fare = calcFare(distanceKm, trip.concession_type, trip.tapInTime, trip.isTransfer, trip.journeyDist)
+
+  // Step 7: Wallet Service — deduct fare
+  const prevBalance = WALLET_SERVICE.value[cardId] ?? 0
+  const newBalance  = Math.max(0, prevBalance - parseFloat(fare.total))
+  WALLET_SERVICE.value[cardId] = newBalance
+
+  // Clear trip record
+  delete TRIP_SERVICE.value[cardId]
+
+  // Step 8: Notification Service — notified via AMQP (simulated)
+  result.value = {
+    type: 'success', title: 'Journey complete',
+    message: `${trip.origin} → ${form.value.station}`,
+    fare: { ...fare, newBalance: newBalance.toFixed(2) },
+  }
   loading.value = false
 }
 
@@ -307,157 +438,135 @@ const stationGroups = [
 <style scoped>
 @import '@/assets/pages.css';
 
-.form-map-row {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  min-height: 400px;
-}
-
-.left-col {
-  flex-shrink: 0;
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.toggle-row {
-  display: flex;
-  gap: 8px;
-}
-
-.toggle-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--rs);
-  background: var(--surface);
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.toggle-btn svg {
-  width: 15px; height: 15px;
-  stroke: currentColor; stroke-width: 1.8;
-  fill: none; stroke-linecap: round; stroke-linejoin: round;
-  flex-shrink: 0;
-}
-.toggle-btn.active {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
-  font-weight: 600;
-}
-.toggle-btn:not(.active):hover {
-  border-color: var(--teal);
-  color: var(--teal-d);
-}
-
-/* Map */
-.map-section {
-  flex: 1;
+.transit-header {
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--r);
-  background: var(--surface);
-  overflow: hidden;
-  align-self: flex-start;
-  position: sticky;
-  top: 80px;
+  display: flex; align-items: center; gap: 16px; padding: 20px 22px;
 }
+.transit-header .page-icon { background: #e8e4f8; }
+.transit-header .page-icon svg { stroke: #7c6fcd; }
+.transit-header h1 { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.transit-header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
-.map-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid var(--border);
-}
-.map-header:hover { background: #a6ccfc; }
+.form-map-row { display: flex; gap: 20px; align-items: flex-start; min-height: 400px; }
 
-.map-chevron {
-  width: 14px; height: 14px;
-  stroke: var(--muted); stroke-width: 2;
-  fill: none; stroke-linecap: round;
-  transition: transform 0.2s;
+.left-col { flex-shrink: 0; width: 400px; display: flex; flex-direction: column; gap: 16px; }
+
+.toggle-row { display: flex; gap: 8px; }
+
+.toggle-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px; border: 1.5px solid var(--border); border-radius: var(--rs);
+  background: var(--surface); font-family: var(--font); font-size: 14px; font-weight: 500;
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
 }
+.toggle-btn svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.toggle-btn.active { background: #7c6fcd; border-color: #7c6fcd; color: #fff; font-weight: 600; }
+.toggle-btn:not(.active):hover { border-color: #7c6fcd; color: #7c6fcd; }
+
+.map-section { flex: 1; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); overflow: hidden; align-self: flex-start; position: sticky; top: 80px; }
+.map-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+.map-header:hover { background: var(--bg); }
+.map-chevron { width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2; fill: none; stroke-linecap: round; transition: transform 0.2s; }
 .map-chevron.rotated { transform: rotate(180deg); }
-
-.map-body {
-  padding: 12px;
-  max-height: 2000px;
-  overflow: hidden;
-  transition: max-height 0.4s ease, padding 0.4s ease, opacity 0.3s ease;
-  opacity: 1;
-}
-.map-body.collapsed {
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  opacity: 0;
-}
+.map-body { padding: 12px; max-height: 2000px; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease, opacity 0.3s ease; opacity: 1; }
+.map-body.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
 .mrt-map-img { width: 100%; height: auto; border-radius: 6px; display: block; }
 
-/* Station dropdown */
 .station-dropdown { position: relative; }
-.station-input {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--rs);
-  background: var(--surface); cursor: pointer; transition: border-color 0.15s;
-  gap: 8px; min-height: 38px;
-}
+.station-input { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--rs); background: var(--surface); cursor: pointer; transition: border-color 0.15s; gap: 8px; min-height: 38px; }
 .station-input:hover { border-color: #c0b8e8; }
 .station-input.open  { border-color: var(--purple); }
 .station-selected { display: flex; align-items: center; gap: 8px; }
 .placeholder { font-size: 13px; color: var(--hint); }
-.chevron {
-  width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2;
-  fill: none; stroke-linecap: round; flex-shrink: 0; transition: transform 0.2s;
-}
+.chevron { width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; transition: transform 0.2s; }
 .chevron.rotated { transform: rotate(180deg); }
-.station-list {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--rs); z-index: 50;
-  max-height: 280px; overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(0,0,0,.1);
-}
-.line-header {
-  padding: 8px 12px 4px; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.5px; color: var(--hint);
-  border-top: 1px solid var(--border); background: var(--bg);
-}
+.station-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs); z-index: 50; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.line-header { padding: 8px 12px 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--hint); border-top: 1px solid var(--border); background: var(--bg); }
 .line-header:first-child { border-top: none; }
-.station-option {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 12px; cursor: pointer; transition: background 0.1s;
-}
+.station-option { display: flex; align-items: center; gap: 10px; padding: 7px 12px; cursor: pointer; transition: background 0.1s; }
 .station-option:hover    { background: var(--bg); }
 .station-option.selected { background: var(--purple-l); }
 .dot   { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .code  { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 36px; flex-shrink: 0; }
 .sname { font-size: 13px; font-weight: 500; color: var(--text); }
 
-/* Fare breakdown */
-.fare-breakdown {
-  background: rgba(255,255,255,.7); border-radius: 8px;
-  padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; margin-top: 8px;
-}
+.fare-breakdown { background: rgba(255,255,255,.7); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
 .fare-row { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; color: var(--text); }
-.fare-row--discount { color: var(--green-d); }
-.fare-row--note     { color: var(--teal-d); font-style: italic; }
+.fare-row--discount { color: #7c6fcd; }
+.fare-row--note     { color: #7c6fcd; font-style: italic; }
 .fare-row--total    { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 5px; font-size: 13px; font-weight: 600; }
 .fare-row--balance  { color: var(--muted); font-size: 12px; }
+
+.result-panel.success { background: #f0eefb; border-color: #c5bef0; }
+.result-panel.success .result-icon { background: #c5bef0; }
+.result-panel.success .result-icon svg { stroke: #4a3bbf; }
+
+.sub-alert--lilac { padding: 8px 12px; border-radius: 8px; margin-top: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; background: #f0eefb; border: 1px solid #c5bef0; color: #4a3bbf; }
+
+.notify-note { display: flex; align-items: center; gap: 7px; background: #f0eefb; border: 1px solid #c5bef0; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: #4a3bbf; margin-top: 6px; }
+.notify-note svg { width: 13px; height: 13px; stroke: #7c6fcd; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+.btn--teal { background: #7c6fcd; color: #fff; }
+.btn--teal:hover:not(:disabled) { background: #6a5cbd; opacity: 1; transform: translateY(-1px); }
+
+/* ── Modal popup ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+}
+
+.modal-box {
+  background: var(--surface);
+  border-radius: var(--r);
+  width: 400px; min-height: 400px;
+  padding: 32px 28px 24px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; position: relative;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+
+.modal-box.success { border-top: 4px solid #7c6fcd; }
+.modal-box.error   { border-top: 4px solid var(--red); }
+
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: var(--bg); }
+.modal-close svg { width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2; fill: none; stroke-linecap: round; }
+
+.modal-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.success .modal-icon { background: #c5bef0; }
+.error   .modal-icon { background: #f0a0a0; }
+.modal-icon svg { width: 26px; height: 26px; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.success .modal-icon svg { stroke: #4a3bbf; }
+.error   .modal-icon svg { stroke: var(--red-d); }
+
+.modal-title { font-size: 17px; font-weight: 700; color: var(--text); text-align: center; letter-spacing: -0.2px; }
+.modal-msg   { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+
+.modal-dismiss {
+  margin-top: 8px; width: 100%;
+  padding: 11px; border: none; border-radius: var(--rs);
+  background: #7c6fcd; color: #fff;
+  font-family: var(--font); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.modal-dismiss:hover { background: #6a5cbd; }
+.error .modal-dismiss { background: var(--red); }
+.error .modal-dismiss:hover { background: var(--red-d); }
+
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.25s; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 </style>
