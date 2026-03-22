@@ -2,11 +2,12 @@
   <div class="page">
     <div class="page-header yellow">
       <div class="page-icon">
-<svg viewBox="0 0 24 24">
-  <path d="M22 9L12 4 2 9l10 5 10-5z"/>
-  <path d="M6 11.5V17c0 0 2 2 6 2s6-2 6-2v-5.5"/>
-  <line x1="22" y1="9" x2="22" y2="14"/>
-</svg>     </div>
+        <svg viewBox="0 0 24 24">
+          <path d="M22 9L12 4 2 9l10 5 10-5z"/>
+          <path d="M6 11.5V17c0 0 2 2 6 2s6-2 6-2v-5.5"/>
+          <line x1="22" y1="9" x2="22" y2="14"/>
+        </svg>
+      </div>
       <div>
         <h1>Student Concession Application</h1>
         <p>Submit your application — your institution will verify enrollment</p>
@@ -29,10 +30,23 @@
       </div>
       <div class="form-group">
         <label>Institution</label>
-        <select v-model="form.institution">
-          <option value="">Select institution</option>
-          <option v-for="s in schools" :key="s">{{ s }}</option>
-        </select>
+        <div class="station-dropdown" ref="schoolDropdownRef">
+          <div class="station-input" :class="{ open: schoolDropdownOpen }" @click="schoolDropdownOpen = !schoolDropdownOpen">
+            <span v-if="form.institution" class="sname">{{ form.institution }}</span>
+            <span v-else class="placeholder">Select institution</span>
+            <svg viewBox="0 0 24 24" class="chevron" :class="{ rotated: schoolDropdownOpen }"><polyline points="6,9 12,15 18,9"/></svg>
+          </div>
+          <div v-if="schoolDropdownOpen" class="station-list">
+            <div
+              v-for="s in schools" :key="s"
+              class="station-option"
+              :class="{ selected: form.institution === s }"
+              @click="form.institution = s; schoolDropdownOpen = false"
+            >
+              <span class="sname">{{ s }}</span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label>Student ID</label>
@@ -91,7 +105,6 @@
           </div>
         </div>
 
-        <!-- Refund confirmation -->
         <transition name="fade">
           <div v-if="verificationDone && approved" class="result-panel success">
             <div class="result-icon">
@@ -123,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const schools = [
   'National University of Singapore (NUS)',
@@ -131,23 +144,35 @@ const schools = [
   'Singapore Management University (SMU)',
   'Singapore University of Technology & Design (SUTD)',
   'Singapore Institute of Technology (SIT)',
+  'Singapore University of Social Sciences (SUSS)',
   'Ngee Ann Polytechnic', 'Singapore Polytechnic',
   'Temasek Polytechnic', 'Republic Polytechnic', 'Nanyang Polytechnic',
 ]
 
 const form = ref({ cardId: '', name: '', email: '', institution: '', studentId: '' })
-const loading         = ref(false)
-const submitted       = ref(false)
-const submittedAt     = ref('')
+const loading          = ref(false)
+const submitted        = ref(false)
+const submittedAt      = ref('')
 const verificationDone = ref(false)
-const verifiedAt      = ref('')
-const approved        = ref(true)
-const mockRefund      = ref('1.86')
+const verifiedAt       = ref('')
+const approved         = ref(true)
+const mockRefund       = ref('1.86')
+const schoolDropdownOpen = ref(false)
+const schoolDropdownRef  = ref(null)
 
 const canSubmit = computed(() =>
   form.value.cardId.trim() && form.value.name.trim() &&
   form.value.email.trim() && form.value.institution && form.value.studentId.trim()
 )
+
+function handleClickOutside(e) {
+  if (schoolDropdownRef.value && !schoolDropdownRef.value.contains(e.target)) {
+    schoolDropdownOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 async function handleApply() {
   loading.value = true
@@ -165,10 +190,10 @@ async function handleApply() {
 }
 
 function reset() {
-  form.value          = { cardId: '', name: '', email: '', institution: '', studentId: '' }
-  submitted.value     = false
+  form.value             = { cardId: '', name: '', email: '', institution: '', studentId: '' }
+  submitted.value        = false
   verificationDone.value = false
-  approved.value      = true
+  approved.value         = true
 }
 </script>
 
@@ -184,7 +209,6 @@ function reset() {
 .pending-title { font-size: 15px; font-weight: 600; color: var(--text); }
 .pending-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-/* Timeline */
 .timeline { display: flex; flex-direction: column; }
 
 .tl-item {
@@ -207,4 +231,41 @@ function reset() {
 
 .tl-label { font-size: 13px; font-weight: 500; color: var(--text); }
 .tl-time  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* Custom dropdown */
+.station-dropdown { position: relative; }
+
+.station-input {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--rs);
+  background: var(--surface); cursor: pointer; transition: border-color 0.15s;
+  gap: 8px; min-height: 38px;
+}
+.station-input:hover { border-color: #c0b8e8; }
+.station-input.open  { border-color: var(--purple); }
+
+.placeholder { font-size: 13px; color: var(--hint); }
+
+.chevron {
+  width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2;
+  fill: none; stroke-linecap: round; flex-shrink: 0; transition: transform 0.2s;
+}
+.chevron.rotated { transform: rotate(180deg); }
+
+.station-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rs); z-index: 50;
+  max-height: 280px; overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+}
+
+.station-option {
+  display: flex; align-items: center;
+  padding: 9px 12px; cursor: pointer; transition: background 0.1s;
+}
+.station-option:hover    { background: var(--bg); }
+.station-option.selected { background: var(--purple-l); }
+
+.sname { font-size: 13px; font-weight: 500; color: var(--text); }
 </style>

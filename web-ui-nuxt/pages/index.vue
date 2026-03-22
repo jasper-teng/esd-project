@@ -3,8 +3,9 @@
 
     <div class="home-header">
       <div>
-        <h1>Welcome!</h1>
-        <p>How may we assist you today?</p>
+        <h1>Online Services</h1>
+        <p>Select from our online services available below
+</p>
       </div>
     </div>
 
@@ -13,7 +14,7 @@
         <img src="/icons/transit.svg" class="sc-img" alt="" />
         <div class="sc-text">
           <div class="sc-title">Transit</div>
-          <div class="sc-desc">Tap in or out at any MRT or bus stop</div>
+          <div class="sc-desc">Tap in or out at any MRT station</div>
         </div>
       </NuxtLink>
 
@@ -44,7 +45,7 @@
 
     <!-- Card lookup -->
     <div class="lookup-card">
-      <div class="section-title">Check your card</div>
+      <div class="section-title">Check your card details</div>
       <CardLookup
         label="Card ID"
         placeholder="e.g. EZ-1234567890"
@@ -114,20 +115,20 @@ async function handleLookup(id) {
 </script>
 
 <style scoped>
-.home { display: flex; flex-direction: column; gap: 28px; }
+.home { display: flex; flex-direction: column; gap: 28px; align-items: center; }
 
+.home-header { width: 100%; }
 .home-header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
 .home-header p  { font-size: 14px; color: var(--muted); margin-top: 3px; }
 
 .scenario-grid {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 280px);
+  gap: 32px;
 }
 
 .sc-card {
-  width: 200px;
+  width: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -140,21 +141,19 @@ async function handleLookup(id) {
 }
 
 .sc-img {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
+  width: 280px;
+  height: 200px;
   object-fit: contain;
   transition: transform 0.2s ease;
 }
 .sc-card:hover .sc-img { transform: scale(1.03); }
 
 .sc-text {
-  margin-top: 10px;
+  margin-top: -12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
 .sc-title {
   font-size: 14px;
   font-weight: 700;
@@ -162,7 +161,7 @@ async function handleLookup(id) {
   line-height: 1.4;
   transition: color 0.2s;
 }
-.sc-card:hover .sc-title { color: #4c84ce; }
+.sc-card:hover .sc-title { color: #7399cb; }
 
 .sc-desc {
   font-size: 12px;
@@ -176,9 +175,14 @@ async function handleLookup(id) {
 
 /* ── Lookup card ── */
 .lookup-card {
-  background: #eef6ff; border: 1px solid var(--border);
-  border-radius: var(--r); padding: 22px;
-  display: flex; flex-direction: column; gap: 16px; max-width: 480px;
+  background: #eef6ff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 580px;
 }
 
 .section-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
