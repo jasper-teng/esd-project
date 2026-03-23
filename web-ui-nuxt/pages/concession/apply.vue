@@ -43,10 +43,94 @@
           </div>
         </div>
       </div>
+
+      <!-- Custom Date Picker -->
       <div class="form-group">
         <label>Date of Birth</label>
-        <input v-model="verify.dob" type="date" />
+        <div class="datepicker-wrap" ref="dobPickerRef">
+          <div
+            class="datepicker-input"
+            :class="{ open: dobOpen, filled: verify.dob }"
+            @click="toggleDob"
+          >
+            <svg viewBox="0 0 24 24" class="cal-icon">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span :class="verify.dob ? 'dp-value' : 'dp-placeholder'">
+              {{ verify.dob ? formatDisplayDate(verify.dob) : 'dd / mm / yyyy' }}
+            </span>
+            <svg viewBox="0 0 24 24" class="chevron" :class="{ rotated: dobOpen }">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </div>
+
+          <div v-if="dobOpen" class="dp-popup" :class="{ 'dp-popup--up': popupOpensUp }">
+            <!-- Header: Month/Year nav -->
+            <div class="dp-header">
+              <button class="dp-nav" @click.stop="prevMonth">
+                <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
+              </button>
+              <div class="dp-header-center">
+                <div class="dp-month-select" ref="monthSelectRef">
+                  <span class="dp-month-label" @click.stop="monthDropOpen = !monthDropOpen">
+                    {{ monthNames[dpMonth] }}
+                    <svg viewBox="0 0 24 24" class="chevron-sm" :class="{ rotated: monthDropOpen }"><polyline points="6,9 12,15 18,9"/></svg>
+                  </span>
+                  <div v-if="monthDropOpen" class="dp-month-dropdown">
+                    <div
+                      v-for="(m, i) in monthNames" :key="i"
+                      class="dp-month-option"
+                      :class="{ active: i === dpMonth }"
+                      @click.stop="dpMonth = i; monthDropOpen = false"
+                    >{{ m }}</div>
+                  </div>
+                </div>
+                <div class="dp-year-select" ref="yearSelectRef">
+                  <span class="dp-year-label" @click.stop="yearDropOpen = !yearDropOpen">
+                    {{ dpYear }}
+                    <svg viewBox="0 0 24 24" class="chevron-sm" :class="{ rotated: yearDropOpen }"><polyline points="6,9 12,15 18,9"/></svg>
+                  </span>
+                  <div v-if="yearDropOpen" class="dp-year-dropdown">
+                    <div
+                      v-for="y in yearRange" :key="y"
+                      class="dp-year-option"
+                      :class="{ active: y === dpYear }"
+                      @click.stop="dpYear = y; yearDropOpen = false"
+                    >{{ y }}</div>
+                  </div>
+                </div>
+              </div>
+              <button class="dp-nav" @click.stop="nextMonth">
+                <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
+              </button>
+            </div>
+
+            <!-- Weekday labels -->
+            <div class="dp-weekdays">
+              <span v-for="d in ['Su','Mo','Tu','We','Th','Fr','Sa']" :key="d">{{ d }}</span>
+            </div>
+
+            <!-- Days grid -->
+            <div class="dp-days">
+              <span
+                v-for="(day, i) in calendarDays" :key="i"
+                class="dp-day"
+                :class="{
+                  'dp-day--empty': !day,
+                  'dp-day--today': day && isToday(day),
+                  'dp-day--selected': day && isSelected(day),
+                  'dp-day--future': day && isFuture(day),
+                }"
+                @click.stop="day && !isFuture(day) && selectDay(day)"
+              >{{ day || '' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
+
       <transition name="fade">
         <div v-if="verifyError" class="alert alert--error">
           <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -200,7 +284,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useNotifications } from '~/composables/useNotifications'
 
 const { addNotification } = useNotifications()
@@ -241,6 +325,86 @@ const schoolDropdownOpen = ref(false)
 const schoolDropdownRef  = ref(null)
 const fileInputRef       = ref(null)
 
+// ── Custom Date Picker State ──
+const dobOpen        = ref(false)
+const dobPickerRef   = ref(null)
+const monthDropOpen  = ref(false)
+const yearDropOpen   = ref(false)
+const monthSelectRef = ref(null)
+const yearSelectRef  = ref(null)
+const popupOpensUp   = ref(false)   // ← flip direction flag
+
+const today   = new Date()
+const dpMonth = ref(today.getMonth())
+const dpYear  = ref(today.getFullYear())
+
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+const yearRange = computed(() => {
+  const end = today.getFullYear()
+  const start = end - 100
+  const years = []
+  for (let y = end; y >= start; y--) years.push(y)
+  return years
+})
+
+const calendarDays = computed(() => {
+  const firstDay = new Date(dpYear.value, dpMonth.value, 1).getDay()
+  const daysInMonth = new Date(dpYear.value, dpMonth.value + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < firstDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+  return cells
+})
+
+function isToday(day) {
+  return day === today.getDate() && dpMonth.value === today.getMonth() && dpYear.value === today.getFullYear()
+}
+function isSelected(day) {
+  if (!verify.value.dob) return false
+  const [y, m, d] = verify.value.dob.split('-').map(Number)
+  return day === d && dpMonth.value === m - 1 && dpYear.value === y
+}
+function isFuture(day) {
+  const d = new Date(dpYear.value, dpMonth.value, day)
+  return d > today
+}
+function selectDay(day) {
+  const mm = String(dpMonth.value + 1).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  verify.value.dob = `${dpYear.value}-${mm}-${dd}`
+  dobOpen.value = false
+}
+function formatDisplayDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d} / ${m} / ${y}`
+}
+function prevMonth() {
+  if (dpMonth.value === 0) { dpMonth.value = 11; dpYear.value-- }
+  else dpMonth.value--
+}
+function nextMonth() {
+  if (dpMonth.value === 11) { dpMonth.value = 0; dpYear.value++ }
+  else dpMonth.value++
+}
+
+// Toggle open + decide direction based on available space below
+async function toggleDob() {
+  if (dobOpen.value) {
+    dobOpen.value = false
+    return
+  }
+  // Measure space below the trigger before opening
+  if (dobPickerRef.value) {
+    const rect = dobPickerRef.value.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    // Calendar is ~320px tall; open upward if less than 340px below
+    popupOpensUp.value = spaceBelow < 340
+  }
+  dobOpen.value = true
+}
+
 const canVerify = computed(() =>
   verify.value.idNumber.trim() && verify.value.school && verify.value.dob
 )
@@ -255,6 +419,11 @@ function handleClickOutside(e) {
   if (schoolDropdownRef.value && !schoolDropdownRef.value.contains(e.target)) {
     schoolDropdownOpen.value = false
   }
+  if (dobPickerRef.value && !dobPickerRef.value.contains(e.target)) {
+    dobOpen.value = false
+    monthDropOpen.value = false
+    yearDropOpen.value = false
+  }
 }
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
@@ -265,55 +434,37 @@ function handleFileChange(e) {
   if (file) form.value.document = file.name
 }
 
-// Phase 1: Student Verification API (HTTP POST)
 async function handleVerify() {
   verifying.value = true
   verifyError.value = ''
   await new Promise(r => setTimeout(r, 1200))
-
-  // Mock Student Verification API response
-  // Simulate: valid IDs start with S or T
   const id = verify.value.idNumber.trim().toUpperCase()
   if (!id.match(/^[ST]\d{7}[A-Z]$/)) {
     verifyError.value = 'Student verification failed — NRIC not found in student records. Please check your details.'
     verifying.value = false
     return
   }
-
   verifiedAt.value = new Date().toLocaleTimeString('en-SG')
   verifying.value = false
   phase.value = 2
 }
 
-// Phase 2: Application Submission → Payment Gateway → Notification → Card Service
 async function handleSubmit() {
   submitting.value = true
   submitError.value = ''
   await new Promise(r => setTimeout(r, 1500))
-
   submittedAt.value = new Date().toLocaleTimeString('en-SG')
   phase.value = 3
-
-  // Simulate async: Payment Gateway (step 2) + Notification (step 3 AMQP) + Card Service (step 4)
   setTimeout(() => {
     processingDone.value = true
     processedAt.value    = new Date().toLocaleTimeString('en-SG')
     approved.value       = Math.random() > 0.1
-
-    // Push in-app notification via AMQP → Notification Service simulation
     if (approved.value) {
-      addNotification(
-        'Concession approved ✓',
-        `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`
-      )
+      addNotification('Concession approved ✓', `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`)
     } else {
-      addNotification(
-        'Concession application failed',
-        'Payment was processed but concession creation failed. A refund of $2.00 will be issued.'
-      )
+      addNotification('Concession application failed', 'Payment was processed but concession creation failed. A refund of $2.00 will be issued.')
     }
   }, 2500)
-
   submitting.value = false
 }
 
@@ -366,7 +517,6 @@ function reset() {
 .form-row { display: flex; gap: 12px; }
 .form-row .form-group { flex: 1; }
 .form-actions { display: flex; gap: 10px; align-items: center; }
-
 .label-hint { font-size: 11px; font-weight: 400; color: var(--hint); }
 
 /* ── File upload ── */
@@ -452,4 +602,141 @@ function reset() {
 .station-option:hover    { background: var(--bg); }
 .station-option.selected { background: #f0eefb; }
 .sname { font-size: 13px; font-weight: 500; color: var(--text); }
+
+/* ══════════════════════════════════════════
+   Custom Date Picker
+══════════════════════════════════════════ */
+.datepicker-wrap { position: relative; }
+
+.datepicker-input {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: var(--rs); background: var(--surface);
+  cursor: pointer; transition: border-color 0.15s; min-height: 38px;
+  user-select: none;
+}
+.datepicker-input:hover    { border-color: #c0b8e8; }
+.datepicker-input.open     { border-color: #7c6fcd; }
+.datepicker-input.filled   { border-color: #c5bef0; }
+
+.cal-icon {
+  width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2;
+  fill: none; stroke-linecap: round; flex-shrink: 0;
+}
+.datepicker-input.open .cal-icon,
+.datepicker-input.filled .cal-icon { stroke: #7c6fcd; }
+
+.dp-placeholder { font-size: 13px; color: var(--hint); flex: 1; }
+.dp-value       { font-size: 13px; color: var(--text); flex: 1; font-weight: 500; }
+
+/* Popup — default opens downward */
+.dp-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; z-index: 100; width: 280px;
+  box-shadow: 0 8px 24px rgba(124,111,205,0.15);
+  padding: 14px;
+  animation: dp-down 0.15s ease;
+}
+
+/* Flip upward when there's not enough space below */
+.dp-popup--up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  animation: dp-up 0.15s ease;
+}
+
+@keyframes dp-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dp-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Header */
+.dp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.dp-nav {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: background 0.1s, border-color 0.1s;
+  padding: 0;
+}
+.dp-nav:hover { background: #f0eefb; border-color: #c5bef0; }
+.dp-nav svg { width: 14px; height: 14px; stroke: var(--muted); stroke-width: 2; fill: none; stroke-linecap: round; }
+
+.dp-header-center { display: flex; align-items: center; gap: 6px; }
+
+/* Month/Year selector */
+.dp-month-select, .dp-year-select { position: relative; }
+.dp-month-label, .dp-year-label {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; padding: 3px 7px; border-radius: 6px;
+  transition: background 0.1s; user-select: none;
+}
+.dp-month-label:hover, .dp-year-label:hover { background: #f0eefb; color: #7c6fcd; }
+.chevron-sm {
+  width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.5;
+  fill: none; stroke-linecap: round; transition: transform 0.2s;
+}
+.chevron-sm.rotated { transform: rotate(180deg); }
+
+.dp-month-dropdown, .dp-year-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  max-height: 180px; overflow-y: auto; min-width: 130px;
+}
+.dp-month-option, .dp-year-option {
+  padding: 7px 14px; font-size: 12px; font-weight: 500;
+  color: var(--text); cursor: pointer; transition: background 0.1s;
+  white-space: nowrap;
+}
+.dp-month-option:hover, .dp-year-option:hover { background: #f0eefb; }
+.dp-month-option.active, .dp-year-option.active {
+  background: #e8e4f8; color: #4a3bbf; font-weight: 700;
+}
+
+/* Weekdays */
+.dp-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.dp-weekdays span {
+  text-align: center; font-size: 10px; font-weight: 600;
+  color: var(--muted); padding: 3px 0; text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* Days grid */
+.dp-days {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+}
+.dp-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; color: var(--text);
+  border-radius: 7px; cursor: pointer; transition: background 0.1s, color 0.1s;
+}
+.dp-day:not(.dp-day--empty):not(.dp-day--future):hover {
+  background: #f0eefb; color: #7c6fcd;
+}
+.dp-day--empty   { cursor: default; pointer-events: none; }
+.dp-day--future  { color: var(--hint); cursor: not-allowed; }
+.dp-day--today   { font-weight: 700; color: #7c6fcd; position: relative; }
+.dp-day--today::after {
+  content: ''; display: block; width: 3px; height: 3px;
+  background: #7c6fcd; border-radius: 50%;
+  position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+}
+.dp-day--selected {
+  background: #7c6fcd !important; color: #fff !important;
+  font-weight: 700; box-shadow: 0 2px 8px rgba(124,111,205,0.4);
+}
 </style>
