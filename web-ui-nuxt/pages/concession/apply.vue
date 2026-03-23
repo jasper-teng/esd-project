@@ -175,7 +175,7 @@
               <div class="result-title">Concession card created</div>
               <div class="result-msg">
                 Your student concession has been activated on card <strong>{{ form.cardId }}</strong>.
-                Fare discount of 70% will apply on all future trips. A confirmation has been sent to <strong>{{ form.email }}</strong>.
+                Fare discount of 70% will apply on all future trips. An in-app notification has been sent to you.
               </div>
             </div>
           </div>
@@ -201,6 +201,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useNotifications } from '~/composables/useNotifications'
+
+const { addNotification } = useNotifications()
 
 const schools = [
   'National University of Singapore (NUS)',
@@ -296,6 +299,19 @@ async function handleSubmit() {
     processingDone.value = true
     processedAt.value    = new Date().toLocaleTimeString('en-SG')
     approved.value       = Math.random() > 0.1
+
+    // Push in-app notification via AMQP → Notification Service simulation
+    if (approved.value) {
+      addNotification(
+        'Concession approved ✓',
+        `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`
+      )
+    } else {
+      addNotification(
+        'Concession application failed',
+        'Payment was processed but concession creation failed. A refund of $2.00 will be issued.'
+      )
+    }
   }, 2500)
 
   submitting.value = false

@@ -75,26 +75,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useNotifications } from '~/composables/useNotifications'
+
+const { notifications, unread, markRead, markAllRead } = useNotifications()
 
 const notifOpen = ref(false)
-
-const notifications = ref([
-  { id: 1, title: 'Tap-in successful', message: 'You tapped in at NS1 Jurong East.', time: '2 min ago', unread: true },
-  { id: 2, title: 'Auto Top-Up triggered', message: '$10.00 was added to your wallet.', time: '15 min ago', unread: true },
-  { id: 3, title: 'Concession approved', message: 'Your student concession is now active.', time: '1 hour ago', unread: true },
-  { id: 4, title: 'Trip completed', message: 'Fare of $1.42 deducted. Balance: $8.58.', time: 'Yesterday', unread: false },
-])
-
-const unread = computed(() => notifications.value.filter(n => n.unread).length)
-
-function markRead(n) {
-  n.unread = false
-}
-
-function markAllRead() {
-  notifications.value.forEach(n => n.unread = false)
-}
 
 function handleClickOutside(e) {
   if (!e.target.closest('.notif-wrap')) notifOpen.value = false
@@ -152,20 +138,12 @@ body {
 .navbar {
   background: #4f62b9;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: sticky; top: 0; z-index: 100;
 }
 
 .navbar-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
+  max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between; position: relative;
 }
 
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
@@ -175,37 +153,21 @@ body {
 .brand-name { font-size: 15px; font-weight: 600; color: #ffffff; letter-spacing: -0.2px; line-height: 1.2; }
 .brand-sub  { font-size: 11px; color: rgb(155, 198, 254); font-weight: 500; line-height: 1.2; }
 
-.nav-links {
-  display: flex;
-  gap: 4px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
+.nav-links { display: flex; gap: 4px; position: absolute; left: 50%; transform: translateX(-50%); }
 
 .nl {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  text-decoration: none;
-  color: #ffffff;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px;
+  font-size: 15px; font-weight: 500; text-decoration: none; color: #ffffff;
+  transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
 .nl svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .nl:hover, .nl.router-link-active,
 .nl--teal:hover, .nl--teal.router-link-active,
 .nl--yellow:hover, .nl--yellow.router-link-active,
 .nl--red:hover, .nl--red.router-link-active {
-  background: var(--purple-l);
-  color: var(--purple-d);
+  background: var(--purple-l); color: var(--purple-d);
 }
 
-/* ── Notification ── */
 .notif-wrap { position: relative; flex-shrink: 0; }
 
 .notif-btn {
@@ -231,8 +193,7 @@ body {
   position: absolute; top: calc(100% + 10px); right: 0;
   width: 300px; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--r);
-  box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 200;
-  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 200; overflow: hidden;
 }
 
 .notif-header {
@@ -241,10 +202,7 @@ body {
   font-size: 13px; font-weight: 600; color: var(--text);
 }
 
-.notif-clear {
-  font-size: 12px; font-weight: 500; color: var(--purple);
-  background: none; border: none; cursor: pointer; font-family: var(--font);
-}
+.notif-clear { font-size: 12px; font-weight: 500; color: var(--purple); background: none; border: none; cursor: pointer; font-family: var(--font); }
 .notif-clear:hover { text-decoration: underline; }
 
 .notif-list { max-height: 320px; overflow-y: auto; }
@@ -259,21 +217,13 @@ body {
 .notif-item.unread { background: var(--purple-l); }
 .notif-item.unread:hover { background: #e0dcfa; }
 
-.notif-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--purple); flex-shrink: 0; margin-top: 5px;
-}
-.notif-dot-placeholder {
-  width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px;
-}
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; margin-top: 5px; }
+.notif-dot-placeholder { width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px; }
 
 .notif-title { font-size: 13px; font-weight: 600; color: var(--text); }
 .notif-msg   { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
 .notif-time  { font-size: 11px; color: var(--hint); margin-top: 4px; }
 
-/* ── Content ── */
 .page-main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 24px; }
-
-/* ── Footer ── */
 .footer { text-align: center; padding: 18px; font-size: 12px; color: #ffffff; border-top: 1px solid var(--border); background: #4f62b9; }
 </style>
