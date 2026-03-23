@@ -7,7 +7,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="10" y2="15"/></svg>
           </div>
           <div class="brand-text">
-            <span class="brand-name">SimplyGo</span>
+            <span class="brand-name">FunFare</span>
             <span class="brand-sub">EZ-Link Portal</span>
           </div>
         </NuxtLink>
@@ -69,7 +69,7 @@
     </main>
 
     <footer class="footer">
-      <p>SimplyGo EZ-Link Demo - ESD Project</p>
+      <p>FunFare - ESD Project</p>
     </footer>
   </div>
 </template>

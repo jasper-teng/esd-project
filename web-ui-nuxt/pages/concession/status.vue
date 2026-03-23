@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <div class="page-header yellow">
+    <div class="page-header status-header-box">
       <div class="page-icon">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </div>
@@ -49,15 +49,15 @@
           </div>
         </div>
 
-        <div v-if="record.application_status === 'approved'" class="result-panel success">
-          <div class="result-icon"><svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg></div>
+        <div v-if="record.application_status === 'approved'" class="result-panel lilac-panel">
+          <div class="result-icon lilac-icon"><svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg></div>
           <div class="result-body">
             <div class="result-title">Concession approved</div>
             <div class="result-msg">Student fare is now active on this card.<span v-if="record.refund_amount"> A refund of <strong>${{ record.refund_amount }}</strong> was credited to the wallet.</span></div>
           </div>
         </div>
 
-        <div v-else-if="record.application_status === 'pending'" class="info-box info-box--yellow">
+        <div v-else-if="record.application_status === 'pending'" class="info-box info-box--lilac">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Verification is in progress at {{ record.institution }}. You will be notified once complete.
         </div>
@@ -109,19 +109,29 @@ async function handleCheck(id) {
 <style scoped>
 @import '@/assets/pages.css';
 
+/* ── Page header ── */
+.status-header-box {
+  background: #ffffff; border: 1px solid var(--border);
+  border-radius: var(--r); display: flex; align-items: center; gap: 16px; padding: 20px 22px;
+}
+.status-header-box .page-icon { background: #e8e4f8; }
+.status-header-box .page-icon svg { stroke: #7c6fcd; }
+.status-header-box h1 { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.status-header-box p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
 .status-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r); overflow: hidden; max-width: 520px;
 }
 
 .status-header {
-  background: var(--yellow-l); padding: 16px;
+  background: var(--purple-l); padding: 16px;
   display: flex; justify-content: space-between;
   align-items: flex-start; flex-wrap: wrap; gap: 8px;
   border-bottom: 1px solid var(--border);
 }
 
-.status-id   { font-size: 15px; font-weight: 600; color: var(--yellow-d); }
+.status-id   { font-size: 15px; font-weight: 600; color: var(--purple-d); }
 .status-name { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
 
 .status-grid {
@@ -137,6 +147,18 @@ async function handleCheck(id) {
 .stat-value { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 3px; text-transform: capitalize; }
 
 .result-panel, .info-box { margin: 0 16px 16px; }
+
+.lilac-panel { background: #f0eefb; border: 1px solid #c5bef0; border-radius: var(--r); padding: 18px; display: flex; gap: 12px; align-items: flex-start; }
+.lilac-icon { width: 36px; height: 36px; border-radius: 8px; background: #c5bef0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lilac-icon svg { width: 18px; height: 18px; stroke: #4a3bbf; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.info-box--lilac {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: #f0eefb; border: 1px solid #c5bef0;
+  border-radius: 8px; padding: 10px 12px;
+  font-size: 12px; font-weight: 500; line-height: 1.5; color: #4a3bbf;
+}
+.info-box--lilac svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; stroke: #7c6fcd; stroke-width: 2; fill: none; stroke-linecap: round; }
 
 .alert {
   display: flex; align-items: center; gap: 8px;
