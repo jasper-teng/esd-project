@@ -2,5 +2,6 @@ import { integer, pgTable, varchar } from "drizzle-orm/pg-core";
 
 export const card = pgTable("cards", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull()
+  name: varchar({ length: 255 }).notNull(),
+  name2: varchar({ length: 255 }).notNull()
 });
