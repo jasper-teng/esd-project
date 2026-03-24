@@ -29,6 +29,10 @@
             <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="9" y1="14" x2="15" y2="17"/><line x1="15" y1="14" x2="9" y2="17"/></svg>
             Lost Card
           </NuxtLink>
+          <NuxtLink to="/topup" class="nl nl--green">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+            Top Up
+          </NuxtLink>
         </nav>
 
         <div class="notif-wrap">
@@ -164,7 +168,8 @@ body {
 .nl:hover, .nl.router-link-active,
 .nl--teal:hover, .nl--teal.router-link-active,
 .nl--yellow:hover, .nl--yellow.router-link-active,
-.nl--red:hover, .nl--red.router-link-active {
+.nl--red:hover, .nl--red.router-link-active,
+.nl--green:hover, .nl--green.router-link-active {
   background: var(--purple-l); color: var(--purple-d);
 }
 

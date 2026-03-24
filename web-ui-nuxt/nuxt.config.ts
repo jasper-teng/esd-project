@@ -6,6 +6,12 @@ export default defineNuxtConfig({
   srcDir: '.',
   devtools: { enabled: true },
 
+  runtimeConfig: {
+    public: {
+      stripeKey: '', // overridden by NUXT_PUBLIC_STRIPE_KEY env var
+    },
+  },
+
   alias: {
     '~': resolve(__dirname, '.'),
     '@': resolve(__dirname, '.'),

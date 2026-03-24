@@ -1,0 +1,882 @@
+<template>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="3"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+          <line x1="6" y1="15" x2="9" y2="15"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Payment & Top-Up</h1>
+        <p>Manage bank cards, auto top-up settings, and manual top-ups</p>
+      </div>
+    </div>
+
+    <!-- Test mode user selector -->
+    <div class="test-banner">
+      <span class="test-badge">TEST MODE</span>
+      <span>Simulating as:</span>
+      <select v-model="selectedUserId" @change="onUserChange" class="user-select">
+        <option v-for="u in mockUsers" :key="u.id" :value="u.id">{{ u.name }} ({{ u.id }})</option>
+      </select>
+      <span class="stripe-mode" :class="stripeMode === 'TEST' ? 'mode-test' : 'mode-live'">
+        Stripe: {{ stripeMode }}
+      </span>
+    </div>
+
+    <div class="two-col">
+
+      <!-- LEFT: Travel Cards -->
+      <div class="col">
+        <div class="section-card">
+          <div class="section-head">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <h2>Travel Cards</h2>
+          </div>
+          <p class="section-sub">Select a card to manage auto top-up or top it up manually.</p>
+
+          <div
+            v-for="card in travelCards"
+            :key="card.id"
+            class="travel-card"
+            :class="{ selected: selectedCardId === card.id }"
+            @click="selectCard(card.id)"
+          >
+            <div class="tc-top">
+              <div>
+                <div class="tc-id">{{ card.id }}</div>
+                <div class="tc-label">{{ card.label }}</div>
+              </div>
+              <div class="tc-balance" :class="{ low: card.balance < 5 }">
+                ${{ card.balance.toFixed(2) }}
+                <span v-if="card.balance < 5" class="low-tag">Low</span>
+              </div>
+            </div>
+            <div class="tc-actions" v-if="selectedCardId === card.id">
+              <button class="btn btn--primary btn--sm" @click.stop="openTopupModal(card)">
+                Top Up
+              </button>
+              <div class="auto-row">
+                <span>Auto Top-Up</span>
+                <label class="toggle-switch" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="autoConfig(card.id).enabled"
+                    @change="toggleAutoTopup(card.id, $event)"
+                  />
+                  <span class="slider"></span>
+                </label>
+                <button class="btn-link" @click.stop="openAutoSettings(card.id)">Settings</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Linked Bank Cards -->
+      <div class="col">
+        <div class="section-card">
+          <div class="section-head">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <h2>Linked Bank Cards</h2>
+          </div>
+          <p class="section-sub">Cards saved here can be used for manual and auto top-ups.</p>
+
+          <div v-if="loadingPMs" class="loading-row">Loading saved cards...</div>
+
+          <div v-else-if="savedPMs.length === 0" class="empty-state">
+            No bank cards linked yet. Add one below.
+          </div>
+
+          <div v-else class="pm-list">
+            <div v-for="pm in savedPMs" :key="pm.id" class="pm-item">
+              <div class="pm-icon">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </div>
+              <div class="pm-info">
+                <div class="pm-brand">{{ pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1) }} •••• {{ pm.last4 }}</div>
+                <div class="pm-expiry">Expires {{ pm.exp_month }}/{{ pm.exp_year }}</div>
+              </div>
+              <button class="btn-remove" @click="removeCard(pm.id)" title="Remove card">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn--outline btn--full" @click="openAddCard">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Bank Card
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Auto Top-Up Settings Panel -->
+    <transition name="slide">
+      <div v-if="autoSettingsCardId" class="section-card auto-settings-card">
+        <div class="section-head">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+          <h2>Auto Top-Up Settings — {{ autoSettingsCardId }}</h2>
+          <button class="btn-close-sm" @click="autoSettingsCardId = ''">✕</button>
+        </div>
+        <p class="section-sub">
+          When your card balance drops below the threshold, it will automatically be topped up using the selected bank card.
+        </p>
+
+        <div class="settings-grid">
+          <div class="setting-row">
+            <label>Trigger when balance below</label>
+            <div class="preset-btns">
+              <button
+                v-for="t in [3, 5, 10]"
+                :key="t"
+                class="preset-btn"
+                :class="{ active: editConfig.threshold_sgd === t }"
+                @click="editConfig.threshold_sgd = t"
+              >${{ t }}</button>
+              <input
+                v-model.number="editConfig.threshold_sgd"
+                type="number"
+                min="1"
+                class="custom-input"
+                placeholder="Custom"
+              />
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>Top-up amount</label>
+            <div class="preset-btns">
+              <button
+                v-for="a in [10, 20, 50]"
+                :key="a"
+                class="preset-btn"
+                :class="{ active: editConfig.topup_amount_sgd === a }"
+                @click="editConfig.topup_amount_sgd = a"
+              >${{ a }}</button>
+              <input
+                v-model.number="editConfig.topup_amount_sgd"
+                type="number"
+                min="1"
+                class="custom-input"
+                placeholder="Custom"
+              />
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>Charge this bank card</label>
+            <select v-model="editConfig.payment_method_id" class="pm-select">
+              <option value="">— Select a saved card —</option>
+              <option v-for="pm in savedPMs" :key="pm.id" :value="pm.id">
+                {{ pm.brand }} •••• {{ pm.last4 }} ({{ pm.exp_month }}/{{ pm.exp_year }})
+              </option>
+            </select>
+            <span v-if="savedPMs.length === 0" class="hint">Add a bank card first.</span>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn btn--primary" :disabled="savingAutoConfig" @click="saveAutoSettings">
+            {{ savingAutoConfig ? 'Saving...' : 'Save Settings' }}
+          </button>
+          <span v-if="autoConfigSaved" class="saved-msg">Saved!</span>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===== ADD CARD MODAL ===== -->
+    <teleport to="body">
+      <div v-if="addCardModal" class="modal-overlay" @click.self="closeAddCard">
+        <div class="modal">
+          <button class="modal-close" @click="closeAddCard">✕</button>
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <h2>Add Bank Card</h2>
+          <p class="modal-sub">Enter your card details. This card will be saved to your account for future use.</p>
+
+          <div class="stripe-field-wrap">
+            <label>Card Details</label>
+            <div ref="addCardElementRef" class="stripe-element-box"></div>
+          </div>
+
+          <div v-if="addCardError" class="error-box">{{ addCardError }}</div>
+
+          <button class="btn btn--primary btn--full" :disabled="addCardLoading || !stripeReady" @click="submitAddCard">
+            {{ addCardLoading ? 'Saving...' : 'Save Card' }}
+          </button>
+
+          <div class="test-hint">
+            Test card: <strong>4242 4242 4242 4242</strong>, any future expiry, any CVC
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- ===== TOP-UP MODAL ===== -->
+    <teleport to="body">
+      <div v-if="topupModal" class="modal-overlay" @click.self="closeTopupModal">
+        <div class="modal modal--wide">
+          <button class="modal-close" @click="closeTopupModal">✕</button>
+
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+
+          <h2>Top Up {{ topupCard?.id }}</h2>
+          <p class="modal-sub">Current balance: <strong>${{ topupCard?.balance.toFixed(2) }}</strong></p>
+
+          <!-- Amount selection -->
+          <div class="field-group">
+            <label>Amount (SGD)</label>
+            <div class="preset-btns">
+              <button
+                v-for="a in [10, 20, 50]"
+                :key="a"
+                class="preset-btn"
+                :class="{ active: topupAmount === a && !topupCustom }"
+                @click="topupAmount = a; topupCustom = false"
+              >${{ a }}</button>
+              <button
+                class="preset-btn"
+                :class="{ active: topupCustom }"
+                @click="topupCustom = true; topupAmount = 0"
+              >Custom</button>
+            </div>
+            <input
+              v-if="topupCustom"
+              v-model.number="topupAmount"
+              type="number"
+              min="1"
+              placeholder="Enter amount in SGD"
+              class="amount-input"
+            />
+          </div>
+
+          <!-- Payment method selection -->
+          <div class="field-group">
+            <label>Pay with</label>
+            <div class="pay-options">
+              <label class="pay-option" :class="{ active: !topupUseNew }">
+                <input type="radio" v-model="topupUseNew" :value="false" />
+                <div class="pay-option-body">
+                  <strong>Saved card</strong>
+                  <span>Use a bank card you've already linked</span>
+                </div>
+              </label>
+              <label class="pay-option" :class="{ active: topupUseNew }">
+                <input type="radio" v-model="topupUseNew" :value="true" />
+                <div class="pay-option-body">
+                  <strong>New card</strong>
+                  <span>Enter card details (optionally save)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Saved card dropdown -->
+          <div v-if="!topupUseNew" class="field-group">
+            <label>Select saved card</label>
+            <div v-if="savedPMs.length === 0" class="empty-state">
+              No saved cards. <button class="btn-link" @click="closeTopupModal(); openAddCard()">Add one first.</button>
+            </div>
+            <select v-else v-model="topupSelectedPmId" class="pm-select">
+              <option value="">— Select a card —</option>
+              <option v-for="pm in savedPMs" :key="pm.id" :value="pm.id">
+                {{ pm.brand }} •••• {{ pm.last4 }} ({{ pm.exp_month }}/{{ pm.exp_year }})
+              </option>
+            </select>
+          </div>
+
+          <!-- New card entry -->
+          <div v-if="topupUseNew" class="field-group">
+            <label>Card Details</label>
+            <div ref="topupCardElementRef" class="stripe-element-box"></div>
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="topupSaveCard" />
+              <span>Save this card for future use</span>
+            </label>
+          </div>
+
+          <div v-if="topupError" class="error-box">{{ topupError }}</div>
+
+          <div v-if="topupSuccess" class="success-box">
+            Payment successful! ${{ topupAmount }} added to {{ topupCard?.id }}.
+          </div>
+
+          <button
+            v-if="!topupSuccess"
+            class="btn btn--primary btn--full"
+            :disabled="topupLoading || !stripeReady || topupAmount <= 0 || (!topupUseNew && !topupSelectedPmId)"
+            @click="submitTopup"
+          >
+            {{ topupLoading ? 'Processing...' : `Pay $${topupAmount} SGD` }}
+          </button>
+
+          <div class="test-hint" v-if="topupUseNew">
+            Test card: <strong>4242 4242 4242 4242</strong>, any future expiry, any CVC
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+  </div>
+</template>
+
+<script setup>
+import { loadStripe } from '@stripe/stripe-js'
+
+const config = useRuntimeConfig()
+const GATEWAY = 'http://localhost:3010'
+
+// ---------------------------------------------------------------------------
+// Mock data — simulates users and travel cards without real auth/DB
+// ---------------------------------------------------------------------------
+const mockUsers = [
+  { id: 'user_1', name: 'Alice Tan' },
+  { id: 'user_2', name: 'Bob Lim' },
+]
+
+const mockCardData = {
+  user_1: [
+    { id: 'EZ-0001', label: 'Primary Card',  balance: 3.20 },
+    { id: 'EZ-0002', label: 'Work Card',     balance: 12.50 },
+  ],
+  user_2: [
+    { id: 'EZ-0003', label: 'Student Card',  balance: 0.80 },
+  ],
+}
+
+const selectedUserId = ref('user_1')
+const travelCards    = ref([...mockCardData['user_1']])
+const selectedCardId = ref('')
+
+function onUserChange() {
+  travelCards.value    = [...(mockCardData[selectedUserId.value] ?? [])]
+  selectedCardId.value = ''
+  autoSettingsCardId.value = ''
+  fetchSavedPMs()
+}
+
+function selectCard(id) {
+  selectedCardId.value = selectedCardId.value === id ? '' : id
+  if (selectedCardId.value) loadAutoConfig(id)
+}
+
+// ---------------------------------------------------------------------------
+// Stripe
+// ---------------------------------------------------------------------------
+let stripe       = null
+let addElements  = null
+let addCardEl    = null
+let topupElements = null
+let topupCardEl  = null
+const stripeReady   = ref(false)
+const stripeMode    = ref('...')
+const addCardElementRef   = ref(null)
+const topupCardElementRef = ref(null)
+
+const CARD_STYLE = {
+  base: {
+    fontSize: '16px',
+    color: '#1a1a2e',
+    fontFamily: 'system-ui, sans-serif',
+    '::placeholder': { color: '#aab' },
+  },
+}
+
+onMounted(async () => {
+  // Check gateway Stripe mode
+  try {
+    const r = await fetch(`${GATEWAY}/`)
+    const d = await r.json()
+    stripeMode.value = d.stripe_mode?.includes('LIVE') ? 'LIVE 🔴' : 'TEST 🟡'
+  } catch { stripeMode.value = 'Offline' }
+
+  if (!config.public.stripeKey || config.public.stripeKey.includes('YOUR_')) {
+    console.warn('[Stripe] Publishable key not set in web-ui-nuxt/.env')
+    return
+  }
+
+  stripe = await loadStripe(config.public.stripeKey)
+  stripeReady.value = !!stripe
+
+  await fetchSavedPMs()
+})
+
+// ---------------------------------------------------------------------------
+// Saved Payment Methods
+// ---------------------------------------------------------------------------
+const savedPMs     = ref([])
+const loadingPMs   = ref(false)
+
+async function fetchSavedPMs() {
+  loadingPMs.value = true
+  try {
+    const r = await fetch(`${GATEWAY}/payment-methods/${selectedUserId.value}`)
+    const d = await r.json()
+    savedPMs.value = d.payment_methods ?? []
+  } catch {
+    savedPMs.value = []
+  } finally {
+    loadingPMs.value = false
+  }
+}
+
+async function removeCard(pmId) {
+  await fetch(`${GATEWAY}/payment-methods/${selectedUserId.value}/${pmId}`, { method: 'DELETE' })
+  await fetchSavedPMs()
+}
+
+// ---------------------------------------------------------------------------
+// Auto Top-Up
+// ---------------------------------------------------------------------------
+const autoSettingsCardId = ref('')
+const editConfig         = ref({ enabled: false, threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' })
+const autoConfigCache    = ref({})
+const savingAutoConfig   = ref(false)
+const autoConfigSaved    = ref(false)
+
+function autoConfig(cardId) {
+  return autoConfigCache.value[cardId] ?? { enabled: false }
+}
+
+async function loadAutoConfig(cardId) {
+  try {
+    const r = await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`)
+    const d = await r.json()
+    autoConfigCache.value[cardId] = d
+    if (autoSettingsCardId.value === cardId) editConfig.value = { ...d }
+  } catch {}
+}
+
+function openAutoSettings(cardId) {
+  autoSettingsCardId.value = cardId
+  editConfig.value = { ...(autoConfigCache.value[cardId] ?? { enabled: false, threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' }) }
+}
+
+async function toggleAutoTopup(cardId, e) {
+  const enabled = e.target.checked
+  const current = autoConfigCache.value[cardId] ?? { threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' }
+  const updated = { ...current, enabled }
+  await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updated),
+  })
+  autoConfigCache.value[cardId] = updated
+}
+
+async function saveAutoSettings() {
+  savingAutoConfig.value = true
+  autoConfigSaved.value  = false
+  try {
+    await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${autoSettingsCardId.value}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editConfig.value),
+    })
+    autoConfigCache.value[autoSettingsCardId.value] = { ...editConfig.value }
+    autoConfigSaved.value = true
+    setTimeout(() => { autoConfigSaved.value = false }, 2000)
+  } finally {
+    savingAutoConfig.value = false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Add Card Modal
+// ---------------------------------------------------------------------------
+const addCardModal   = ref(false)
+const addCardLoading = ref(false)
+const addCardError   = ref('')
+
+async function openAddCard() {
+  addCardError.value = ''
+  addCardModal.value  = true
+  await nextTick()
+  if (!stripe || !addCardElementRef.value) return
+  addElements = stripe.elements()
+  addCardEl   = addElements.create('card', { style: CARD_STYLE })
+  addCardEl.mount(addCardElementRef.value)
+}
+
+function closeAddCard() {
+  addCardModal.value = false
+  if (addCardEl) { addCardEl.destroy(); addCardEl = null }
+}
+
+async function submitAddCard() {
+  if (!stripe || !addCardEl) return
+  addCardError.value   = ''
+  addCardLoading.value = true
+  try {
+    // Step 1: get SetupIntent client_secret from gateway
+    const r = await fetch(`${GATEWAY}/setup-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: selectedUserId.value }),
+    })
+    const { client_secret, error: gwErr } = await r.json()
+    if (gwErr) throw new Error(gwErr)
+
+    // Step 2: confirm the setup with card details entered by user
+    const { setupIntent, error } = await stripe.confirmCardSetup(client_secret, {
+      payment_method: { card: addCardEl },
+    })
+    if (error) throw new Error(error.message)
+    if (setupIntent.status !== 'succeeded') throw new Error('Setup did not succeed')
+
+    closeAddCard()
+    await fetchSavedPMs()
+  } catch (e) {
+    addCardError.value = e.message
+  } finally {
+    addCardLoading.value = false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Top-Up Modal
+// ---------------------------------------------------------------------------
+const topupModal       = ref(false)
+const topupCard        = ref(null)
+const topupAmount      = ref(20)
+const topupCustom      = ref(false)
+const topupUseNew      = ref(false)
+const topupSelectedPmId = ref('')
+const topupSaveCard    = ref(false)
+const topupLoading     = ref(false)
+const topupError       = ref('')
+const topupSuccess     = ref(false)
+
+async function openTopupModal(card) {
+  topupCard.value        = card
+  topupAmount.value      = 20
+  topupCustom.value      = false
+  topupUseNew.value      = savedPMs.value.length === 0
+  topupSelectedPmId.value = savedPMs.value[0]?.id ?? ''
+  topupSaveCard.value    = false
+  topupError.value       = ''
+  topupSuccess.value     = false
+  topupModal.value       = true
+
+  if (topupUseNew.value) {
+    await nextTick()
+    mountTopupCardElement()
+  }
+}
+
+watch(topupUseNew, async (newVal) => {
+  if (newVal) {
+    await nextTick()
+    mountTopupCardElement()
+  } else {
+    if (topupCardEl) { topupCardEl.destroy(); topupCardEl = null }
+  }
+})
+
+function mountTopupCardElement() {
+  if (!stripe || !topupCardElementRef.value) return
+  if (topupCardEl) { topupCardEl.destroy() }
+  topupElements = stripe.elements()
+  topupCardEl   = topupElements.create('card', { style: CARD_STYLE })
+  topupCardEl.mount(topupCardElementRef.value)
+}
+
+function closeTopupModal() {
+  topupModal.value = false
+  if (topupCardEl) { topupCardEl.destroy(); topupCardEl = null }
+}
+
+async function submitTopup() {
+  if (topupAmount.value <= 0) return
+  topupError.value   = ''
+  topupLoading.value = true
+
+  try {
+    if (!topupUseNew.value) {
+      // --- Use saved card (off-session, no card input needed) ---
+      const r = await fetch(`${GATEWAY}/topup/saved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: selectedUserId.value,
+          travel_card_id: topupCard.value.id,
+          amount_sgd: topupAmount.value,
+          payment_method_id: topupSelectedPmId.value,
+        }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error ?? 'Payment failed')
+
+      // Credit the mock travel card balance
+      const card = travelCards.value.find(c => c.id === topupCard.value.id)
+      if (card) card.balance = +(card.balance + topupAmount.value).toFixed(2)
+      topupCard.value = { ...topupCard.value, balance: card.balance }
+      topupSuccess.value = true
+
+    } else {
+      // --- New card: create PaymentIntent, confirm with Stripe Elements ---
+      const r = await fetch(`${GATEWAY}/topup/intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: selectedUserId.value,
+          travel_card_id: topupCard.value.id,
+          amount_sgd: topupAmount.value,
+          save_card: topupSaveCard.value,
+        }),
+      })
+      const { client_secret, error: gwErr } = await r.json()
+      if (gwErr) throw new Error(gwErr)
+
+      const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, {
+        payment_method: { card: topupCardEl },
+      })
+      if (error) throw new Error(error.message)
+      if (paymentIntent.status !== 'succeeded') throw new Error('Payment did not succeed')
+
+      // Credit the mock travel card balance
+      const card = travelCards.value.find(c => c.id === topupCard.value.id)
+      if (card) card.balance = +(card.balance + topupAmount.value).toFixed(2)
+      topupCard.value = { ...topupCard.value, balance: card.balance }
+      topupSuccess.value = true
+
+      // Refresh saved cards if we saved this one
+      if (topupSaveCard.value) await fetchSavedPMs()
+    }
+
+  } catch (e) {
+    topupError.value = e.message
+  } finally {
+    topupLoading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.page { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+
+.page-header {
+  display: flex; align-items: center; gap: 16px;
+  background: linear-gradient(135deg, #4f4caf 0%, #6c6ace 100%);
+  border-radius: 16px; padding: 24px; color: white; margin-bottom: 24px;
+}
+.page-icon {
+  width: 52px; height: 52px; background: rgba(255,255,255,0.2);
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+}
+.page-icon svg { width: 26px; height: 26px; stroke: white; fill: none; stroke-width: 2; }
+.page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
+.page-header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+
+/* Test banner */
+.test-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px;
+  padding: 10px 16px; margin-bottom: 24px; font-size: 0.9rem;
+}
+.test-badge {
+  background: #ff9800; color: white; font-size: 0.72rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em;
+}
+.user-select {
+  border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px;
+  background: white; font-size: 0.9rem;
+}
+.stripe-mode { margin-left: auto; font-weight: 600; font-size: 0.85rem; }
+.mode-test { color: #f59e0b; }
+.mode-live { color: #ef4444; }
+
+/* Layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+@media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+.col {}
+
+/* Section card */
+.section-card {
+  background: white; border-radius: 16px;
+  border: 1px solid #e8e8f0; padding: 24px;
+}
+.section-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.section-head svg {
+  width: 22px; height: 22px; stroke: #4f4caf;
+  fill: none; stroke-width: 2; flex-shrink: 0;
+}
+.section-head h2 { font-size: 1.05rem; font-weight: 700; margin: 0; flex: 1; }
+.section-sub { font-size: 0.85rem; color: #888; margin: 0 0 16px; }
+
+/* Travel card items */
+.travel-card {
+  border: 2px solid #e8e8f0; border-radius: 12px; padding: 14px 16px;
+  margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
+}
+.travel-card:hover { border-color: #b3b0e8; }
+.travel-card.selected { border-color: #4f4caf; background: #f7f7ff; }
+.tc-top { display: flex; justify-content: space-between; align-items: center; }
+.tc-id   { font-weight: 700; font-size: 1rem; }
+.tc-label { font-size: 0.8rem; color: #888; margin-top: 2px; }
+.tc-balance { font-size: 1.1rem; font-weight: 700; color: #2d2d6b; text-align: right; }
+.tc-balance.low { color: #ef4444; }
+.low-tag { font-size: 0.65rem; background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; padding: 1px 5px; margin-left: 6px; }
+.tc-actions { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid #eee; padding-top: 12px; }
+.auto-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #555; }
+.btn-link { background: none; border: none; color: #4f4caf; cursor: pointer; font-size: 0.85rem; text-decoration: underline; padding: 0; }
+
+/* Toggle switch */
+.toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0; background: #ccc;
+  border-radius: 20px; transition: 0.2s;
+}
+.slider::before {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s;
+}
+.toggle-switch input:checked + .slider { background: #4f4caf; }
+.toggle-switch input:checked + .slider::before { transform: translateX(16px); }
+
+/* Payment methods */
+.pm-list { margin-bottom: 12px; }
+.pm-item {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid #e8e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+}
+.pm-icon svg { width: 24px; height: 24px; stroke: #4f4caf; fill: none; stroke-width: 1.5; }
+.pm-info { flex: 1; }
+.pm-brand  { font-weight: 600; font-size: 0.9rem; }
+.pm-expiry { font-size: 0.78rem; color: #888; }
+.btn-remove {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: #aaa; transition: color 0.15s;
+}
+.btn-remove:hover { color: #ef4444; }
+.btn-remove svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.empty-state { color: #aaa; font-size: 0.9rem; padding: 12px 0; }
+.loading-row { color: #aaa; font-size: 0.9rem; padding: 8px 0; }
+
+/* Auto top-up settings */
+.auto-settings-card { margin-top: 20px; }
+.btn-close-sm { background: none; border: none; cursor: pointer; font-size: 1rem; color: #888; padding: 2px 6px; margin-left: auto; }
+.settings-grid { display: flex; flex-direction: column; gap: 20px; margin: 16px 0; }
+.setting-row { display: flex; flex-direction: column; gap: 8px; }
+.setting-row label { font-size: 0.88rem; font-weight: 600; color: #555; }
+.preset-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.preset-btn {
+  padding: 6px 16px; border: 2px solid #e0e0f0; border-radius: 8px;
+  background: white; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+  color: #4f4caf; transition: all 0.15s;
+}
+.preset-btn.active { background: #4f4caf; color: white; border-color: #4f4caf; }
+.custom-input {
+  border: 2px solid #e0e0f0; border-radius: 8px; padding: 6px 12px;
+  font-size: 0.9rem; width: 90px; outline: none;
+}
+.custom-input:focus { border-color: #4f4caf; }
+.pm-select {
+  border: 2px solid #e0e0f0; border-radius: 8px; padding: 8px 12px;
+  font-size: 0.9rem; width: 100%; background: white;
+}
+.hint { font-size: 0.8rem; color: #f59e0b; }
+.settings-actions { display: flex; align-items: center; gap: 12px; }
+.saved-msg { color: #22c55e; font-size: 0.85rem; font-weight: 600; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn--primary { background: #4f4caf; color: white; }
+.btn--primary:hover:not(:disabled) { background: #3d3a9e; }
+.btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--outline {
+  background: white; color: #4f4caf;
+  border: 2px solid #4f4caf;
+}
+.btn--outline:hover { background: #f0f0ff; }
+.btn--full { width: 100%; }
+.btn--sm { padding: 6px 14px; font-size: 0.82rem; }
+.btn--outline svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* Modals */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+.modal {
+  background: white; border-radius: 20px; padding: 32px;
+  width: 100%; max-width: 440px; position: relative;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal--wide { max-width: 520px; }
+.modal-close {
+  position: absolute; top: 16px; right: 18px;
+  background: #f5f5f8; border: none; border-radius: 8px;
+  width: 32px; height: 32px; cursor: pointer; font-size: 1rem; color: #555;
+}
+.modal-icon {
+  width: 52px; height: 52px; background: #ededfb; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+}
+.modal-icon svg { width: 26px; height: 26px; stroke: #4f4caf; fill: none; stroke-width: 2; }
+.modal h2 { text-align: center; font-size: 1.25rem; margin: 0 0 6px; }
+.modal-sub { text-align: center; color: #888; font-size: 0.88rem; margin: 0 0 24px; }
+
+/* Form fields in modals */
+.field-group { margin-bottom: 20px; }
+.field-group label { display: block; font-size: 0.88rem; font-weight: 600; color: #555; margin-bottom: 8px; }
+
+.stripe-field-wrap label { display: block; font-size: 0.88rem; font-weight: 600; color: #555; margin-bottom: 8px; }
+.stripe-element-box {
+  border: 2px solid #e0e0f0; border-radius: 10px; padding: 12px 14px;
+  background: white; min-height: 46px;
+}
+.stripe-element-box:focus-within { border-color: #4f4caf; }
+
+.amount-input {
+  width: 100%; border: 2px solid #e0e0f0; border-radius: 10px;
+  padding: 10px 14px; font-size: 1rem; margin-top: 8px; outline: none;
+}
+.amount-input:focus { border-color: #4f4caf; }
+
+/* Pay options */
+.pay-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pay-option {
+  border: 2px solid #e0e0f0; border-radius: 12px; padding: 12px;
+  cursor: pointer; display: flex; gap: 10px; align-items: flex-start;
+  transition: all 0.15s;
+}
+.pay-option input { margin-top: 2px; }
+.pay-option.active { border-color: #4f4caf; background: #f7f7ff; }
+.pay-option-body strong { display: block; font-size: 0.88rem; }
+.pay-option-body span   { font-size: 0.78rem; color: #888; }
+
+.checkbox-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; color: #555; margin-top: 10px; cursor: pointer;
+}
+.checkbox-row input { width: 16px; height: 16px; }
+
+.error-box   { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 14px; }
+.success-box { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; text-align: center; }
+
+.test-hint { text-align: center; font-size: 0.8rem; color: #888; margin-top: 14px; }
+.test-hint strong { color: #4f4caf; }
+
+/* Transitions */
+.slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-8px); }
+</style>
