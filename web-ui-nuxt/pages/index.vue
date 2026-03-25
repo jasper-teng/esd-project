@@ -26,11 +26,11 @@
         </div>
       </NuxtLink>
 
-      <NuxtLink to="/concession/status" class="sc-card">
-        <img src="/icons/status.svg" class="sc-img" alt="" />
+      <NuxtLink to="/topup" class="sc-card">
+        <img src="/icons/top-up.svg" class="sc-img" alt="" />
         <div class="sc-text">
-          <div class="sc-title">Check Application Status</div>
-          <div class="sc-desc">View your concession application</div>
+          <div class="sc-title">Top-up Card</div>
+          <div class="sc-desc">Add value to your EZ-Link card</div>
         </div>
       </NuxtLink>
 
