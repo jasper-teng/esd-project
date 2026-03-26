@@ -72,13 +72,6 @@
           </button>
         </div>
 
-        <button class="btn btn--paynow" @click="openPaynow">
-          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          Top Up via PayNow
-        </button>
-        <button class="btn btn--ghost-sm" @click="setupTestCard">
-          🧪 [Test] Save pm_card_visa for auto top-up
-        </button>
       </div>
 
       <!-- Right: MRT Map -->
@@ -95,63 +88,6 @@
       </div>
 
     </div>
-
-    <!-- PayNow Top-Up Modal -->
-    <transition name="modal-fade">
-      <div v-if="paynowModal" class="modal-overlay" @click.self="closePaynow">
-        <div class="modal paynow-box">
-          <button class="modal-close" @click="closePaynow">
-            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-
-          <template v-if="paynowSuccess">
-            <div class="modal-icon" style="background:#c5f0d8"><svg viewBox="0 0 24 24" style="stroke:#1a6641"><polyline points="20,6 9,17 4,12"/></svg></div>
-            <div class="modal-title">Payment received!</div>
-            <div class="modal-msg">${{ paynowAmount }} credited to <strong>{{ paynowCardId }}</strong>.<br>New balance: <strong>${{ paynowNewBalance.toFixed(2) }}</strong></div>
-            <button class="btn btn--primary btn--full" style="background:#00b894;margin-top:8px" @click="closePaynow">Done</button>
-          </template>
-
-          <template v-else-if="paynowQrUrl">
-            <div class="paynow-header">
-              <span class="paynow-logo">PayNow</span>
-              <span class="paynow-ref">Ref: {{ paynowReference }}</span>
-            </div>
-            <div class="paynow-amt">${{ paynowAmount }}.00 SGD</div>
-            <img :src="paynowQrUrl" alt="PayNow QR" class="paynow-qr" />
-            <div class="paynow-hint">Open your banking app and scan to pay</div>
-            <div v-if="paynowExpiry" class="paynow-expiry">Expires {{ paynowExpiry }}</div>
-            <div class="paynow-polling">
-              <svg class="spin-icon" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Waiting for payment…
-            </div>
-            <div v-if="paynowError" class="error-box">{{ paynowError }}</div>
-            <button class="btn btn--ghost-sm" :disabled="paynowLoading" @click="simulatePaynow">
-              {{ paynowLoading ? 'Processing…' : '🧪 Simulate Payment (Test Mode)' }}
-            </button>
-          </template>
-
-          <template v-else>
-            <div class="modal-icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-            <div class="modal-title">Top Up via PayNow</div>
-            <div class="modal-msg">A QR code will be generated. Scan it with your banking app.</div>
-            <div class="pn-field">
-              <label>Card ID</label>
-              <input v-model="paynowCardId" class="field-input" placeholder="EZ-1234567890" />
-            </div>
-            <div class="pn-field">
-              <label>Amount (SGD)</label>
-              <div class="preset-btns">
-                <button v-for="a in [10,20,50]" :key="a" class="preset-btn" :class="{ active: paynowAmount === a }" @click="paynowAmount = a">${{ a }}</button>
-              </div>
-            </div>
-            <div v-if="paynowError" class="error-box">{{ paynowError }}</div>
-            <button class="btn btn--primary btn--full" :disabled="paynowLoading || !paynowCardId" @click="submitPaynow">
-              {{ paynowLoading ? 'Generating QR…' : `Generate PayNow QR — $${paynowAmount}` }}
-            </button>
-          </template>
-        </div>
-      </div>
-    </transition>
 
     <!-- Transit result modal -->
     <transition name="modal-fade">
@@ -250,12 +186,6 @@ const TRIP_SERVICE   = ref({ 'EZ-TRANSFER': { origin: 'EW21 Buona Vista', tapInT
 const MINIMUM_BALANCE = 5.00
 const MAX_FARE        = 2.40
 const AUTO_TOPUP_AMT  = 10.00
-const PAYMENT_GW      = 'http://localhost:3010'
-
-const paynowModal = ref(false); const paynowCardId = ref(''); const paynowAmount = ref(20)
-const paynowLoading = ref(false); const paynowError = ref(''); const paynowIntentId = ref('')
-const paynowQrUrl = ref(''); const paynowReference = ref(''); const paynowExpiry = ref('')
-const paynowSuccess = ref(false); const paynowPollTimer = ref(null); const paynowNewBalance = ref(0)
 
 async function handleTapIn() {
   loading.value = true; result.value = null
@@ -270,12 +200,7 @@ async function handleTapIn() {
   if (existingTrip) { balance = Math.max(0, balance - MAX_FARE); WALLET_SERVICE.value[cardId] = balance; incompleteSettled = MAX_FARE.toFixed(2); delete TRIP_SERVICE.value[cardId] }
   if (balance < MINIMUM_BALANCE) {
     if (card.auto_topup) {
-      try {
-        const res = await fetch(`${PAYMENT_GW}/topup/auto`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: cardId, amount_sgd: AUTO_TOPUP_AMT }) })
-        const data = await res.json()
-        if (!res.ok) { if (data.error === 'no_saved_payment_method') { result.value = { type: 'error', title: 'No saved payment method', message: 'Auto top-up requires a saved card.', details: { 'Card': cardId, 'Balance': `$${balance.toFixed(2)}`, 'Required': `$${MINIMUM_BALANCE.toFixed(2)}` }, incompleteSettled }; loading.value = false; return } throw new Error(data.error || 'Auto top-up failed') }
-        balance += AUTO_TOPUP_AMT; WALLET_SERVICE.value[cardId] = balance; autoTopUp = AUTO_TOPUP_AMT.toFixed(2)
-      } catch (e) { console.warn('[STRIPE] offline, mock:', e.message); balance += AUTO_TOPUP_AMT; WALLET_SERVICE.value[cardId] = balance; autoTopUp = AUTO_TOPUP_AMT.toFixed(2) + ' (mock)' }
+      balance += AUTO_TOPUP_AMT; WALLET_SERVICE.value[cardId] = balance; autoTopUp = AUTO_TOPUP_AMT.toFixed(2)
     } else { result.value = { type: 'error', title: 'Insufficient balance', message: `Balance $${balance.toFixed(2)} is below the $${MINIMUM_BALANCE.toFixed(2)} minimum. Auto top-up is not enabled.`, details: { 'Card holder': card.name, 'Current balance': `$${balance.toFixed(2)}`, 'Minimum required': `$${MINIMUM_BALANCE.toFixed(2)}` }, incompleteSettled }; loading.value = false; return }
   }
   const tapInTime = new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -313,31 +238,6 @@ async function handleTapOut() {
   loading.value = false
 }
 
-function openPaynow() { paynowCardId.value = form.value.cardId.trim() || 'EZ-1234567890'; paynowAmount.value = 20; paynowError.value = ''; paynowIntentId.value = ''; paynowQrUrl.value = ''; paynowReference.value = ''; paynowExpiry.value = ''; paynowSuccess.value = false; paynowNewBalance.value = 0; paynowModal.value = true }
-function closePaynow() { if (paynowPollTimer.value) { clearInterval(paynowPollTimer.value); paynowPollTimer.value = null } paynowModal.value = false }
-async function submitPaynow() {
-  paynowLoading.value = true; paynowError.value = ''; paynowQrUrl.value = ''
-  try {
-    const res = await fetch(`${PAYMENT_GW}/topup/paynow`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: paynowCardId.value, amount_sgd: paynowAmount.value }) })
-    const data = await res.json()
-    if (!res.ok) { paynowError.value = data.error || 'Failed to create QR'; return }
-    paynowIntentId.value = data.payment_intent_id; paynowQrUrl.value = data.qr_code_image_url ?? ''; paynowReference.value = data.reference ?? ''
-    paynowExpiry.value = data.expires_at ? new Date(data.expires_at * 1000).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }) : ''
-    paynowPollTimer.value = setInterval(async () => { try { const sr = await fetch(`${PAYMENT_GW}/topup/status/${paynowIntentId.value}`); const sd = await sr.json(); if (sd.status === 'succeeded') { clearInterval(paynowPollTimer.value); paynowPollTimer.value = null; WALLET_SERVICE.value[paynowCardId.value] = (WALLET_SERVICE.value[paynowCardId.value] ?? 0) + paynowAmount.value; paynowNewBalance.value = WALLET_SERVICE.value[paynowCardId.value]; paynowSuccess.value = true } } catch { /* ignore */ } }, 2000)
-  } catch { paynowError.value = 'Payment Gateway is offline. Run: cd PaymentGateway && npm run dev' }
-  finally { paynowLoading.value = false }
-}
-async function simulatePaynow() {
-  if (!paynowIntentId.value) return; paynowLoading.value = true
-  try { const res = await fetch(`${PAYMENT_GW}/test/simulate-paynow-success`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_intent_id: paynowIntentId.value }) }); const data = await res.json(); if (res.ok && data.success) { clearInterval(paynowPollTimer.value); paynowPollTimer.value = null; WALLET_SERVICE.value[paynowCardId.value] = (WALLET_SERVICE.value[paynowCardId.value] ?? 0) + paynowAmount.value; paynowNewBalance.value = WALLET_SERVICE.value[paynowCardId.value]; paynowSuccess.value = true } else { paynowError.value = data.error || 'Simulation failed' } }
-  catch { paynowError.value = 'Payment Gateway offline.' } finally { paynowLoading.value = false }
-}
-async function setupTestCard() {
-  const cid = form.value.cardId.trim() || 'EZ-1234567890'
-  try { const res = await fetch(`${PAYMENT_GW}/setup-payment-method`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: cid, payment_method_id: 'pm_card_visa' }) }); const data = await res.json(); if (res.ok) alert(`✓ Test card saved for ${cid}.`); else alert(`Error: ${data.error}`) }
-  catch { alert('Payment Gateway offline. Run: cd PaymentGateway && npm run dev') }
-}
-onUnmounted(() => { if (paynowPollTimer.value) clearInterval(paynowPollTimer.value) })
 
 const stationGroups = [
   { line: 'North-South Line', stations: [
@@ -461,12 +361,6 @@ const stationGroups = [
 .btn--primary:hover:not(:disabled) { background: #3d3a9e; }
 .btn--primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn--full { width: 100%; }
-.btn--paynow { background: #00b894; color: #fff; width: 100%; }
-.btn--paynow:hover { background: #00a381; }
-.btn--paynow svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; }
-.btn--ghost-sm { width: 100%; padding: 8px; background: none; border: 1.5px dashed #e0e0f0; border-radius: 10px; font-size: 12px; color: #aaa; cursor: pointer; transition: all 0.15s; }
-.btn--ghost-sm:hover:not(:disabled) { border-color: #4f4caf; color: #4f4caf; }
-.btn--ghost-sm:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Station dropdown ── */
 .station-dropdown { position: relative; }
@@ -530,29 +424,7 @@ const stationGroups = [
 .notify-note { width: 100%; display: flex; align-items: center; gap: 7px; background: #ededfb; border: 1px solid #c5bef0; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: #3d3a9e; }
 .notify-note svg { width: 13px; height: 13px; stroke: #4f4caf; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
 
-.paynow-box { max-width: 360px; }
-.paynow-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 14px; background: #e8f4ff; border: 1px solid #b8d8f0; border-radius: 8px; }
-.paynow-logo { font-size: 15px; font-weight: 800; color: #1a5fa8; }
-.paynow-ref  { font-size: 11px; color: #888; }
-.paynow-amt  { font-size: 28px; font-weight: 700; color: #1a1a2e; letter-spacing: -1px; }
-.paynow-qr   { width: 200px; height: 200px; border-radius: 12px; border: 2px solid #e0e0f0; }
-.paynow-hint   { font-size: 12px; color: #888; font-weight: 500; }
-.paynow-expiry { font-size: 11px; color: #bbb; }
-.paynow-polling { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4f4caf; font-weight: 500; }
-
-.pn-field { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-.pn-field label { font-size: 0.82rem; font-weight: 600; color: #555; }
-.field-input { width: 100%; border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; box-sizing: border-box; }
-.field-input:focus { border-color: #4f4caf; }
-.preset-btns { display: flex; gap: 8px; }
-.preset-btn { flex: 1; padding: 9px; border: 1.5px solid #e0e0f0; border-radius: 10px; background: white; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; transition: all 0.15s; }
-.preset-btn.active { background: #4f4caf; border-color: #4f4caf; color: #fff; }
-.preset-btn:not(.active):hover { border-color: #4f4caf; color: #4f4caf; }
-
 .error-box { width: 100%; padding: 8px 12px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; color: #dc2626; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin-icon { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; animation: spin 0.9s linear infinite; flex-shrink: 0; }
 
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.25s; }
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
