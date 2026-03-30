@@ -14,12 +14,12 @@ app.get('/', (c) => {
   return c.text('Hello test card!')
 })
 
-app.post("/", async (c) => {
+app.post("/addCard", async (c) => {
   const { name, name2 } = await c.req.json();
 
-  // if (!username || !email || !password) {
-  //   return c.json({ message: "All fields are required" }, 400);
-  // }
+  if (!name || !name2) {
+    return c.json({ message: "All fields are required" }, 400);
+  }
   
   const NewCard = await db
     .insert(card)
@@ -31,7 +31,7 @@ app.post("/", async (c) => {
 });
 
 
-app.get('/test', async (c) => {
+app.get('/getCard', async (c) => {
   console.log(process.env.CARD_DATABASE_URL)
   const result = await db.select().from(card);
   console.log(result)
