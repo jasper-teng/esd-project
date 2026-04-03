@@ -7,6 +7,11 @@ services:
       - '3001:3001'
     env_file:
       - .env.docker
+    depends_on:
+      - carddb
+    networks:
+      - esd-network
+
   wallet_ms:
     build: 
       context: ./Atomics/Wallet
@@ -15,25 +20,51 @@ services:
       - '3002:3002'
     env_file:
       - .env.docker
+    depends_on:
+      - walletdb
+    networks:
+      - esd-network
   
   carddb:
-    image: postgres:latest
+    image: postgres:16
     ports:
-      - 5432:5432
+      - '5432:5432'
     volumes:
-      - ~/apps/card:/var/lib/postgresql
+      - ~/apps/card:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    networks:
+      - esd-network
   
   walletdb:
-    image: postgres:latest
+    image: postgres:16
     ports:
-      - 5433:5432
+      - '5433:5432'
     volumes:
-      - ~/apps/wallet:/var/lib/postgresql
+      - ~/apps/wallet:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    networks:
+      - esd-network
+
+  tapin_composite:
+    build:
+      context: ./CompositeServices/TapIn
+      dockerfile: TapIn.Dockerfile
+    ports:
+      - '4001:4001'
+    env_file:
+      - .env.docker
+    depends_on:
+      - card_ms
+      - wallet_ms
+    networks:
+      - esd-network
+
+networks:
+  esd-network:
+    driver: bridge
