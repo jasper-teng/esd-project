@@ -21,6 +21,25 @@ const app = new Hono();
 app.use('*', cors({ origin: '*' }));
 
 // ---------------------------------------------------------------------------
+// Wallet service integration — credit balance after successful charge
+// ---------------------------------------------------------------------------
+const WALLET_URL = process.env.WALLET_SERVICE_URL ?? 'http://localhost:3002';
+
+async function creditWallet(travel_card_id: string, amount_sgd: number): Promise<void> {
+  const cardId = parseInt(travel_card_id);
+  if (isNaN(cardId)) return; // skip for non-numeric IDs (mock data)
+  try {
+    await fetch(`${WALLET_URL}/topup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: cardId, amount: amount_sgd }),
+    });
+  } catch (err) {
+    console.warn('[WALLET] Failed to credit wallet:', err instanceof Error ? err.message : err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // In-memory stores (no DB dependency — swap with Wallet/Card service DB in prod)
 // ---------------------------------------------------------------------------
 
@@ -231,6 +250,9 @@ app.post('/topup/saved', async (c) => {
       return c.json({ error: `Unexpected status: ${intent.status}` }, 400);
     }
 
+    // Credit wallet balance in Wallet atomic service
+    await creditWallet(travel_card_id, amount_sgd);
+
     return c.json({ success: true, payment_intent_id: intent.id, amount_sgd });
 
   } catch (err: unknown) {
@@ -324,9 +346,16 @@ app.post('/topup/auto', async (c) => {
       },
     });
 
+    const succeeded = intent.status === 'succeeded';
+
+    // Credit wallet balance if charge succeeded
+    if (succeeded) {
+      await creditWallet(travel_card_id, config.topup_amount_sgd);
+    }
+
     return c.json({
       triggered: true,
-      success: intent.status === 'succeeded',
+      success: succeeded,
       payment_intent_id: intent.id,
       amount_sgd: config.topup_amount_sgd,
     });

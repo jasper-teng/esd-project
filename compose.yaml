@@ -105,6 +105,19 @@ services:
     networks:
       - esd-network
 
+  payment_gateway:
+    build:
+      context: ./api/PaymentGateway
+      dockerfile: Dockerfile
+    ports:
+      - '3010:3010'
+    env_file:
+      - ./api/PaymentGateway/.env.docker
+    depends_on:
+      - wallet_ms
+    networks:
+      - esd-network
+
 networks:
   esd-network:
     driver: bridge
