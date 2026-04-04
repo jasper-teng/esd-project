@@ -4,8 +4,7 @@
     <div class="home-header">
       <div>
         <h1>Online Services</h1>
-        <p>Select from our online services available below
-</p>
+        <p>Select from our online services available below</p>
       </div>
     </div>
 
@@ -48,7 +47,7 @@
       <div class="section-title">Check your card details</div>
       <CardLookup
         label="Card ID"
-        placeholder="e.g. EZ-1234567890"
+        placeholder="e.g. 1"
         btn-text="Look up"
         :loading="loading"
         @lookup="handleLookup"
@@ -58,21 +57,23 @@
         <div v-if="card" class="card-result">
           <div class="result-top">
             <div>
-              <div class="result-id">{{ card.card_id }}</div>
-              <div class="result-name">{{ card.user_name }}</div>
-              <div class="result-email">{{ card.email }}</div>
+              <div class="result-id">Card #{{ card.id }}</div>
+              <div class="result-name">{{ card.name }}</div>
+              <div v-if="card.name2" class="result-email">{{ card.name2 }}</div>
             </div>
-            <StatusBadge :status="card.status" />
           </div>
           <div class="result-stats">
-            <BalanceDisplay :balance="card.balance" />
             <div class="stat-pill">
-              <div class="stat-label">Concession</div>
-              <div class="stat-value">{{ card.concession_type }}</div>
+              <div class="stat-label">Card ID</div>
+              <div class="stat-value">{{ card.id }}</div>
             </div>
             <div class="stat-pill">
-              <div class="stat-label">Auto top-up</div>
-              <div class="stat-value">{{ card.auto_topup_enabled ? 'Enabled' : 'Disabled' }}</div>
+              <div class="stat-label">Name</div>
+              <div class="stat-value">{{ card.name }}</div>
+            </div>
+            <div v-if="card.balance !== null" class="stat-pill">
+              <div class="stat-label">Balance</div>
+              <div class="stat-value">${{ parseFloat(card.balance).toFixed(2) }}</div>
             </div>
           </div>
         </div>
@@ -92,12 +93,6 @@
 <script setup>
 import { ref } from 'vue'
 
-const MOCK_CARDS = {
-  'EZ-1234567890': { card_id: 'EZ-1234567890', status: 'active', concession_type: 'adult',   user_name: 'Alex Tan',   email: 'alex.tan@email.com',    auto_topup_enabled: true,  balance: 12.50 },
-  'EZ-0987654321': { card_id: 'EZ-0987654321', status: 'active', concession_type: 'student', user_name: 'Jamie Lee',  email: 'jamie@school.edu.sg',   auto_topup_enabled: false, balance: 3.20  },
-  'EZ-1111111111': { card_id: 'EZ-1111111111', status: 'lost',   concession_type: 'adult',   user_name: 'Sam Wong',   email: 'sam@email.com',         auto_topup_enabled: false, balance: 0     },
-}
-
 const card    = ref(null)
 const error   = ref('')
 const loading = ref(false)
@@ -106,10 +101,24 @@ async function handleLookup(id) {
   loading.value = true
   card.value    = null
   error.value   = ''
-  await new Promise(r => setTimeout(r, 500))
-  const found = MOCK_CARDS[id]
-  if (found) card.value = found
-  else error.value = `No card found with ID "${id}". Try EZ-1234567890 or EZ-0987654321.`
+  try {
+    const [cardRes, walletRes] = await Promise.all([
+      fetch('http://localhost:3001/getCard'),
+      fetch('http://localhost:3002/test')
+    ])
+    const cards = await cardRes.json()
+    const wallets = await walletRes.json()
+
+    const found = cards.find(c => c.id === parseInt(id))
+    if (found) {
+      const wallet = wallets.find(w => w.card_id === parseInt(id))
+      card.value = { ...found, balance: wallet?.balance ?? null }
+    } else {
+      error.value = `No card found with ID "${id}".`
+    }
+  } catch (err) {
+    error.value = 'Could not reach the card service.'
+  }
   loading.value = false
 }
 </script>

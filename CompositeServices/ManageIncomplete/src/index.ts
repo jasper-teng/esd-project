@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 
 const app = new Hono()
+
+app.use('*', cors({ origin: '*' }))
 
 const portno: number = process.env.MANAGE_INCOMPLETE_PORT ? Number(process.env.MANAGE_INCOMPLETE_PORT) : 4002
 

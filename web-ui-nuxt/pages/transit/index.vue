@@ -34,7 +34,7 @@
         <div class="form-card">
           <div class="form-group">
             <label>Card ID</label>
-            <input v-model="form.cardId" type="text" placeholder="e.g. EZ-1234567890" @input="result = null" />
+            <input v-model="form.cardId" type="text" placeholder="e.g. 1" @input="result = null" />
           </div>
 
           <div class="form-group">
@@ -175,69 +175,84 @@ function handleClickOutside(e) {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
-const CARD_SERVICE = {
-  'EZ-1234567890': { status: 'active', concession_type: 'adult',   name: 'Alex Tan',   auto_topup: true  },
-  'EZ-0987654321': { status: 'active', concession_type: 'student', name: 'Jamie Lee',  auto_topup: true  },
-  'EZ-LOW':        { status: 'active', concession_type: 'adult',   name: 'Chris Ng',   auto_topup: false },
-  'EZ-1111111111': { status: 'lost',   concession_type: 'adult',   name: 'Sam Wong',   auto_topup: false },
-}
-const WALLET_SERVICE = ref({ 'EZ-1234567890': 12.50, 'EZ-0987654321': 3.20, 'EZ-LOW': 2.00, 'EZ-1111111111': 0 })
-const TRIP_SERVICE   = ref({ 'EZ-TRANSFER': { origin: 'EW21 Buona Vista', tapInTime: '07:40', concession_type: 'adult', isTransfer: true, journeyDist: 4.2, status: 'in_progress' } })
-const MINIMUM_BALANCE = 5.00
-const MAX_FARE        = 2.40
-const AUTO_TOPUP_AMT  = 10.00
-
 async function handleTapIn() {
   loading.value = true; result.value = null
-  await new Promise(r => setTimeout(r, 700))
-  const cardId = form.value.cardId.trim()
-  const card = CARD_SERVICE[cardId]
-  if (!card) { result.value = { type: 'error', title: 'Card not found', message: `Card "${cardId}" does not exist. Try EZ-1234567890 or EZ-0987654321.` }; loading.value = false; return }
-  if (card.status !== 'active') { result.value = { type: 'error', title: 'Access denied', message: `Card "${cardId}" is ${card.status} and cannot be used for travel.` }; loading.value = false; return }
-  let balance = WALLET_SERVICE.value[cardId] ?? 0
-  let incompleteSettled = null; let autoTopUp = null
-  const existingTrip = TRIP_SERVICE.value[cardId]
-  if (existingTrip) { balance = Math.max(0, balance - MAX_FARE); WALLET_SERVICE.value[cardId] = balance; incompleteSettled = MAX_FARE.toFixed(2); delete TRIP_SERVICE.value[cardId] }
-  if (balance < MINIMUM_BALANCE) {
-    if (card.auto_topup) {
-      balance += AUTO_TOPUP_AMT; WALLET_SERVICE.value[cardId] = balance; autoTopUp = AUTO_TOPUP_AMT.toFixed(2)
-    } else { result.value = { type: 'error', title: 'Insufficient balance', message: `Balance $${balance.toFixed(2)} is below the $${MINIMUM_BALANCE.toFixed(2)} minimum. Auto top-up is not enabled.`, details: { 'Card holder': card.name, 'Current balance': `$${balance.toFixed(2)}`, 'Minimum required': `$${MINIMUM_BALANCE.toFixed(2)}` }, incompleteSettled }; loading.value = false; return }
-  }
-  const tapInTime = new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
-  TRIP_SERVICE.value[cardId] = { origin: form.value.station, tapInTime, concession_type: card.concession_type, status: 'in_progress' }
-  result.value = { type: 'success', title: 'Access granted — tap-in successful', message: `Welcome aboard, ${card.name}.`, details: { 'Card ID': cardId, 'Boarding station': form.value.station, 'Balance': `$${balance.toFixed(2)}`, 'Tap-in time': new Date().toLocaleTimeString('en-SG') }, incompleteSettled, autoTopUp }
-  loading.value = false
-}
+  try {
+    const res = await fetch('http://localhost:4001/tap-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        card_id: parseInt(form.value.cardId.trim()) || form.value.cardId.trim(),
+        station: form.value.station,
+        transport_type: 'MRT',
+        tap_time: new Date().toISOString()
+      })
+    })
+    const data = await res.json()
 
-function calcFare(km, concession_type, tapInTime, isTransfer = false, journeyDist = 0) {
-  function deg(d) { return d <= 3.2 ? 0.77 + d * 0.12 : d <= 6.2 ? 0.77 + 3.2 * 0.12 + (d - 3.2) * 0.09 : 0.77 + 3.2 * 0.12 + 3.0 * 0.09 + (d - 6.2) * 0.07 }
-  const base = Math.round((isTransfer ? deg(journeyDist + km) - deg(journeyDist) : deg(km)) * 100) / 100
-  const [h] = tapInTime.split(':').map(Number)
-  const peak = (h < 7) ? Math.round(Math.min(0.50, base * 0.15) * 100) / 100 : 0
-  const conPct = concession_type === 'student' ? 70 : 0
-  const conDis = Math.round((base - peak) * conPct / 100 * 100) / 100
-  const total = Math.round((base - peak - conDis) * 100) / 100
-  return { distanceKm: km.toFixed(1), baseFare: base.toFixed(2), peakDiscount: peak > 0 ? peak.toFixed(2) : null, concessionDiscount: conDis > 0 ? conDis.toFixed(2) : null, concessionPct: conPct > 0 ? conPct : null, isTransfer, total: total.toFixed(2) }
+    if (data.status === 'access') {
+      result.value = {
+        type: 'success',
+        title: 'Access granted — tap-in successful',
+        message: `Welcome aboard, ${data.card?.name ?? 'Passenger'}.`,
+        details: {
+          'Card ID': form.value.cardId,
+          'Boarding station': form.value.station,
+          'Balance': `$${parseFloat(data.wallet?.balance ?? 0).toFixed(2)}`,
+          'Tap-in time': new Date().toLocaleTimeString('en-SG')
+        }
+      }
+    } else {
+      result.value = {
+        type: 'error',
+        title: 'Access denied',
+        message: data.reason ?? 'Something went wrong.'
+      }
+    }
+  } catch (err) {
+    result.value = { type: 'error', title: 'Connection error', message: 'Could not reach the TapIn service.' }
+  }
+  loading.value = false
 }
 
 async function handleTapOut() {
   loading.value = true; result.value = null
-  await new Promise(r => setTimeout(r, 700))
-  const cardId = form.value.cardId.trim()
-  const card = CARD_SERVICE[cardId]
-  if (!card) { result.value = { type: 'error', title: 'Card not found', message: `Card "${cardId}" does not exist.` }; loading.value = false; return }
-  const trip = TRIP_SERVICE.value[cardId]
-  if (!trip) { result.value = { type: 'error', title: 'No active trip found', message: `Card "${cardId}" has no active tap-in. Please tap in first.` }; loading.value = false; return }
-  const distanceKm = parseFloat((2 + Math.random() * 12).toFixed(1))
-  const fare = calcFare(distanceKm, trip.concession_type, trip.tapInTime, trip.isTransfer, trip.journeyDist)
-  const prevBalance = WALLET_SERVICE.value[cardId] ?? 0
-  const newBalance = Math.max(0, prevBalance - parseFloat(fare.total))
-  WALLET_SERVICE.value[cardId] = newBalance
-  delete TRIP_SERVICE.value[cardId]
-  result.value = { type: 'success', title: 'Journey complete', message: `${trip.origin} → ${form.value.station}`, fare: { ...fare, newBalance: newBalance.toFixed(2) } }
+  try {
+    const res = await fetch('http://localhost:4003/tap-out', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        card_id: parseInt(form.value.cardId.trim()) || form.value.cardId.trim(),
+        station: form.value.station,
+        transport_type: 'MRT',
+        tap_time: new Date().toISOString()
+      })
+    })
+    const data = await res.json()
+
+    if (data.status === 'success') {
+      result.value = {
+        type: 'success',
+        title: 'Journey complete',
+        message: `Tapped out at ${form.value.station}.`,
+        details: {
+          'Card ID': form.value.cardId,
+          'Exit station': form.value.station,
+          'Tap-out time': new Date().toLocaleTimeString('en-SG')
+        }
+      }
+    } else {
+      result.value = {
+        type: 'error',
+        title: 'Tap-out denied',
+        message: data.reason ?? 'Something went wrong.'
+      }
+    }
+  } catch (err) {
+    result.value = { type: 'error', title: 'Connection error', message: 'Could not reach the TapOut service.' }
+  }
   loading.value = false
 }
-
 
 const stationGroups = [
   { line: 'North-South Line', stations: [

@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 
 const app = new Hono()
+
+app.use('*', cors({ origin: '*' }))
 
 const portno: number = process.env.AUTO_TOPUP_PORT ? Number(process.env.AUTO_TOPUP_PORT) : 4004
 

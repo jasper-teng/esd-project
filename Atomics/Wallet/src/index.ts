@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import { wallet } from './db/schema.js';
@@ -7,6 +8,8 @@ import { wallet } from './db/schema.js';
 const db = drizzle(process.env.WALLET_DATABASE_URL!);
 
 const app = new Hono();
+
+app.use('*', cors({ origin: '*' }))
 
 const portno:number = process.env.WALLET_ATOM_PORT ? Number(process.env.WALLET_ATOM_PORT) : 3000; //default or env
 

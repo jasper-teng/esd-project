@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import { card } from './db/schema.js';
@@ -7,6 +8,8 @@ import { card } from './db/schema.js';
 const db = drizzle(process.env.CARD_DATABASE_URL!);
 
 const app = new Hono();
+
+app.use('*', cors({ origin: '*' }))
 
 const portno: number = process.env.CARD_ATOM_PORT ? Number(process.env.CARD_ATOM_PORT) : 3000; //default or env
 
@@ -26,10 +29,8 @@ app.post("/addCard", async (c) => {
     .values({ name, name2 })
     .returning();
 
-
   return c.json({ message: "User created successfully", user: NewCard });
 });
-
 
 app.get('/getCard', async (c) => {
   console.log(process.env.CARD_DATABASE_URL)
@@ -44,5 +45,3 @@ serve({
 }, (info) => {
   console.log(`Server is running on http://localhost:${portno}`)
 })
-
-
