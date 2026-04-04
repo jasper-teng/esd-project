@@ -102,6 +102,7 @@ services:
       - .env.docker
     depends_on:
       - wallet_ms
+      - payment_gateway
     networks:
       - esd-network
 
@@ -112,7 +113,7 @@ services:
     ports:
       - '3010:3010'
     env_file:
-      - ./api/PaymentGateway/.env.docker
+      - .env.docker
     depends_on:
       - wallet_ms
     networks:

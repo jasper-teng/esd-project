@@ -24,20 +24,19 @@ app.post('/auto-topup', async (c) => {
     // AMQP trigger is handled externally — this endpoint is called after the trigger
 
     // Step 2: Charge linked card via Stripe (auto top-up)
-    // TODO: payment_gateway not yet added to compose.yaml — waiting for groupmate to complete
-    // const stripeRes = await fetch(`http://payment_gateway:3010/topup/auto`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     user_id: String(card_id),
-    //     travel_card_id: String(card_id),
-    //     current_balance_sgd: amount
-    //   })
-    // })
-    // const stripeData: any = await stripeRes.json()
-    // if (!stripeData.triggered || !stripeData.success) {
-    //   return c.json({ status: 'error', reason: stripeData.reason ?? 'Auto top-up not triggered or failed' }, 400)
-    // }
+    const stripeRes = await fetch(`http://payment_gateway:3010/topup/auto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: String(card_id),
+        travel_card_id: String(card_id),
+        current_balance_sgd: amount
+      })
+    })
+    const stripeData: any = await stripeRes.json()
+    if (!stripeData.triggered || !stripeData.success) {
+      return c.json({ status: 'error', reason: stripeData.reason ?? 'Auto top-up not triggered or failed' }, 400)
+    }
 
     // Step 3: Create credit transaction in Wallet Service
     // TODO: wallet_ms topup route not yet built
@@ -59,7 +58,13 @@ app.post('/auto-topup', async (c) => {
     // TODO: notification_ms not yet built
     // SMS sent via AMQP or HTTP through notification_ms
 
-    return c.json({ status: 'success', message: 'Auto top-up processed', card_id, amount })
+    return c.json({
+      status: 'success',
+      message: 'Auto top-up processed',
+      card_id,
+      amount,
+      payment_intent_id: stripeData.payment_intent_id
+    })
 
   } catch (err) {
     console.error(err)
