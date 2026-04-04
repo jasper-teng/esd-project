@@ -78,6 +78,20 @@ services:
     networks:
       - esd-network
 
+  tapout_composite:
+    build:
+      context: ./CompositeServices/TapOut
+      dockerfile: TapOut.Dockerfile
+    ports:
+      - '4003:4003'
+    env_file:
+      - .env.docker
+    depends_on:
+      - card_ms
+      - wallet_ms
+    networks:
+      - esd-network
+
 networks:
   esd-network:
     driver: bridge
