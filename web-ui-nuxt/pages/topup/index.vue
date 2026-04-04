@@ -23,7 +23,7 @@
       <select v-model="selectedUserId" @change="onUserChange" class="user-select">
         <option v-for="u in mockUsers" :key="u.id" :value="u.id">{{ u.name }} ({{ u.id }})</option>
       </select>
-      <span class="stripe-mode" :class="stripeMode === 'TEST' ? 'mode-test' : 'mode-live'">
+      <span class="stripe-mode" :class="stripeMode === 'TEST 🟡' ? 'mode-test' : 'mode-live'">
         Stripe: {{ stripeMode }}
       </span>
     </div>
@@ -39,6 +39,12 @@
           </div>
           <p class="section-sub">Select a card to manage auto top-up or top it up manually.</p>
 
+          <div v-if="loadingCards" class="loading-row">Loading cards...</div>
+
+          <div v-else-if="travelCards.length === 0" class="empty-state">
+            No travel cards found.
+          </div>
+
           <div
             v-for="card in travelCards"
             :key="card.id"
@@ -48,7 +54,7 @@
           >
             <div class="tc-top">
               <div>
-                <div class="tc-id">{{ card.id }}</div>
+                <div class="tc-id">Card #{{ card.id }}</div>
                 <div class="tc-label">{{ card.label }}</div>
               </div>
               <div class="tc-balance" :class="{ low: card.balance < 5 }">
@@ -60,18 +66,29 @@
               <button class="btn btn--primary btn--sm" @click.stop="openTopupModal(card)">
                 Top Up
               </button>
-              <div class="auto-row">
+              <div class="auto-row" :class="{ 'auto-row--disabled': savedPMs.length === 0 }">
                 <span>Auto Top-Up</span>
                 <label class="toggle-switch" @click.stop>
                   <input
                     type="checkbox"
                     :checked="autoConfig(card.id).enabled"
+                    :disabled="savedPMs.length === 0"
                     @change="toggleAutoTopup(card.id, $event)"
                   />
                   <span class="slider"></span>
                 </label>
-                <button class="btn-link" @click.stop="openAutoSettings(card.id)">Settings</button>
+                <button
+                  class="btn-link"
+                  :disabled="savedPMs.length === 0"
+                  :class="{ 'btn-link--disabled': savedPMs.length === 0 }"
+                  @click.stop="savedPMs.length > 0 && openAutoSettings(card.id)"
+                >Settings</button>
               </div>
+              <div v-if="savedPMs.length === 0" class="no-card-hint">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Linked bank card required to enable auto top-up
+              </div>
+              <div v-if="toggleError[card.id]" class="toggle-error">{{ toggleError[card.id] }}</div>
             </div>
           </div>
         </div>
@@ -121,7 +138,7 @@
       <div v-if="autoSettingsCardId" class="section-card auto-settings-card">
         <div class="section-head">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-          <h2>Auto Top-Up Settings — {{ autoSettingsCardId }}</h2>
+          <h2>Auto Top-Up Settings — Card #{{ autoSettingsCardId }}</h2>
           <button class="btn-close-sm" @click="autoSettingsCardId = ''">✕</button>
         </div>
         <p class="section-sub">
@@ -132,40 +149,16 @@
           <div class="setting-row">
             <label>Trigger when balance below</label>
             <div class="preset-btns">
-              <button
-                v-for="t in [3, 5, 10]"
-                :key="t"
-                class="preset-btn"
-                :class="{ active: editConfig.threshold_sgd === t }"
-                @click="editConfig.threshold_sgd = t"
-              >${{ t }}</button>
-              <input
-                v-model.number="editConfig.threshold_sgd"
-                type="number"
-                min="1"
-                class="custom-input"
-                placeholder="Custom"
-              />
+              <button v-for="t in [3, 5, 10]" :key="t" class="preset-btn" :class="{ active: editConfig.threshold_sgd === t }" @click="editConfig.threshold_sgd = t">${{ t }}</button>
+              <input v-model.number="editConfig.threshold_sgd" type="number" min="1" class="custom-input" placeholder="Custom" />
             </div>
           </div>
 
           <div class="setting-row">
             <label>Top-up amount</label>
             <div class="preset-btns">
-              <button
-                v-for="a in [10, 20, 50]"
-                :key="a"
-                class="preset-btn"
-                :class="{ active: editConfig.topup_amount_sgd === a }"
-                @click="editConfig.topup_amount_sgd = a"
-              >${{ a }}</button>
-              <input
-                v-model.number="editConfig.topup_amount_sgd"
-                type="number"
-                min="1"
-                class="custom-input"
-                placeholder="Custom"
-              />
+              <button v-for="a in [10, 20, 50]" :key="a" class="preset-btn" :class="{ active: editConfig.topup_amount_sgd === a }" @click="editConfig.topup_amount_sgd = a">${{ a }}</button>
+              <input v-model.number="editConfig.topup_amount_sgd" type="number" min="1" class="custom-input" placeholder="Custom" />
             </div>
           </div>
 
@@ -186,6 +179,7 @@
             {{ savingAutoConfig ? 'Saving...' : 'Save Settings' }}
           </button>
           <span v-if="autoConfigSaved" class="saved-msg">Saved!</span>
+          <span v-if="saveAutoError" class="save-error">{{ saveAutoError }}</span>
         </div>
       </div>
     </transition>
@@ -229,37 +223,18 @@
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
 
-          <h2>Top Up {{ topupCard?.id }}</h2>
+          <h2>Top Up Card #{{ topupCard?.id }}</h2>
           <p class="modal-sub">Current balance: <strong>${{ topupCard?.balance.toFixed(2) }}</strong></p>
 
-          <!-- Amount selection -->
           <div class="field-group">
             <label>Amount (SGD)</label>
             <div class="preset-btns">
-              <button
-                v-for="a in [10, 20, 50]"
-                :key="a"
-                class="preset-btn"
-                :class="{ active: topupAmount === a && !topupCustom }"
-                @click="topupAmount = a; topupCustom = false"
-              >${{ a }}</button>
-              <button
-                class="preset-btn"
-                :class="{ active: topupCustom }"
-                @click="topupCustom = true; topupAmount = 0"
-              >Custom</button>
+              <button v-for="a in [10, 20, 50]" :key="a" class="preset-btn" :class="{ active: topupAmount === a && !topupCustom }" @click="topupAmount = a; topupCustom = false">${{ a }}</button>
+              <button class="preset-btn" :class="{ active: topupCustom }" @click="topupCustom = true; topupAmount = 0">Custom</button>
             </div>
-            <input
-              v-if="topupCustom"
-              v-model.number="topupAmount"
-              type="number"
-              min="1"
-              placeholder="Enter amount in SGD"
-              class="amount-input"
-            />
+            <input v-if="topupCustom" v-model.number="topupAmount" type="number" min="1" placeholder="Enter amount in SGD" class="amount-input" />
           </div>
 
-          <!-- Payment method selection -->
           <div class="field-group">
             <label>Pay with</label>
             <div class="pay-options">
@@ -280,7 +255,6 @@
             </div>
           </div>
 
-          <!-- Saved card dropdown -->
           <div v-if="!topupUseNew" class="field-group">
             <label>Select saved card</label>
             <div v-if="savedPMs.length === 0" class="empty-state">
@@ -294,7 +268,6 @@
             </select>
           </div>
 
-          <!-- New card entry -->
           <div v-if="topupUseNew" class="field-group">
             <label>Card Details</label>
             <div ref="topupCardElementRef" class="stripe-element-box"></div>
@@ -307,7 +280,7 @@
           <div v-if="topupError" class="error-box">{{ topupError }}</div>
 
           <div v-if="topupSuccess" class="success-box">
-            Payment successful! ${{ topupAmount }} added to {{ topupCard?.id }}.
+            Payment successful! ${{ topupAmount }} added to Card #{{ topupCard?.id }}.
           </div>
 
           <button
@@ -332,35 +305,56 @@
 <script setup>
 import { loadStripe } from '@stripe/stripe-js'
 
-const config = useRuntimeConfig()
+const config  = useRuntimeConfig()
 const GATEWAY = 'http://localhost:3010'
 
-// ---------------------------------------------------------------------------
-// Mock data — simulates users and travel cards without real auth/DB
-// ---------------------------------------------------------------------------
 const mockUsers = [
   { id: 'user_1', name: 'Alice Tan' },
-  { id: 'user_2', name: 'Bob Lim' },
+  { id: 'user_2', name: 'Bob Lim'  },
 ]
 
-const mockCardData = {
-  user_1: [
-    { id: 'EZ-0001', label: 'Primary Card',  balance: 3.20 },
-    { id: 'EZ-0002', label: 'Work Card',     balance: 12.50 },
-  ],
-  user_2: [
-    { id: 'EZ-0003', label: 'Student Card',  balance: 0.80 },
-  ],
+const userNameMap = {
+  user_1: 'Alice Tan',
+  user_2: 'Bob Lim',
 }
 
 const selectedUserId = ref('user_1')
-const travelCards    = ref([...mockCardData['user_1']])
+const travelCards    = ref([])
 const selectedCardId = ref('')
+const loadingCards   = ref(false)
+
+async function fetchTravelCards() {
+  loadingCards.value = true
+  try {
+    const [cardRes, walletRes] = await Promise.all([
+      fetch('http://localhost:3001/getCard'),
+      fetch('http://localhost:3002/test')
+    ])
+    const cards   = await cardRes.json()
+    const wallets = await walletRes.json()
+
+    const userName = userNameMap[selectedUserId.value]
+    const filtered = cards.filter(c => c.name === userName)
+
+    travelCards.value = filtered.map(card => {
+      const wallet = wallets.find(w => w.card_id === card.id)
+      return {
+        id:      String(card.id),
+        label:   card.name2 ?? card.name,
+        balance: parseFloat(wallet?.balance ?? 0)
+      }
+    })
+  } catch (err) {
+    console.error('Failed to fetch travel cards', err)
+  } finally {
+    loadingCards.value = false
+  }
+}
 
 function onUserChange() {
-  travelCards.value    = [...(mockCardData[selectedUserId.value] ?? [])]
-  selectedCardId.value = ''
+  selectedCardId.value     = ''
   autoSettingsCardId.value = ''
+  fetchTravelCards()
   fetchSavedPMs()
 }
 
@@ -372,13 +366,13 @@ function selectCard(id) {
 // ---------------------------------------------------------------------------
 // Stripe
 // ---------------------------------------------------------------------------
-let stripe       = null
-let addElements  = null
-let addCardEl    = null
+let stripe        = null
+let addElements   = null
+let addCardEl     = null
 let topupElements = null
-let topupCardEl  = null
-const stripeReady   = ref(false)
-const stripeMode    = ref('...')
+let topupCardEl   = null
+const stripeReady         = ref(false)
+const stripeMode          = ref('...')
 const addCardElementRef   = ref(null)
 const topupCardElementRef = ref(null)
 
@@ -392,7 +386,8 @@ const CARD_STYLE = {
 }
 
 onMounted(async () => {
-  // Check gateway Stripe mode
+  await fetchTravelCards()
+
   try {
     const r = await fetch(`${GATEWAY}/`)
     const d = await r.json()
@@ -413,8 +408,8 @@ onMounted(async () => {
 // ---------------------------------------------------------------------------
 // Saved Payment Methods
 // ---------------------------------------------------------------------------
-const savedPMs     = ref([])
-const loadingPMs   = ref(false)
+const savedPMs   = ref([])
+const loadingPMs = ref(false)
 
 async function fetchSavedPMs() {
   loadingPMs.value = true
@@ -442,6 +437,8 @@ const editConfig         = ref({ enabled: false, threshold_sgd: 5, topup_amount_
 const autoConfigCache    = ref({})
 const savingAutoConfig   = ref(false)
 const autoConfigSaved    = ref(false)
+const saveAutoError      = ref('')
+const toggleError        = ref({})
 
 function autoConfig(cardId) {
   return autoConfigCache.value[cardId] ?? { enabled: false }
@@ -463,25 +460,40 @@ function openAutoSettings(cardId) {
 
 async function toggleAutoTopup(cardId, e) {
   const enabled = e.target.checked
+  toggleError.value = { ...toggleError.value, [cardId]: '' }
   const current = autoConfigCache.value[cardId] ?? { threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' }
   const updated = { ...current, enabled }
-  await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`, {
+
+  const res = await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updated),
   })
-  autoConfigCache.value[cardId] = updated
+  const data = await res.json()
+
+  if (!res.ok) {
+    autoConfigCache.value = { ...autoConfigCache.value, [cardId]: { ...current, enabled: false } }
+    toggleError.value = { ...toggleError.value, [cardId]: data.error ?? 'Could not update auto top-up setting.' }
+    return
+  }
+  autoConfigCache.value = { ...autoConfigCache.value, [cardId]: updated }
 }
 
 async function saveAutoSettings() {
   savingAutoConfig.value = true
   autoConfigSaved.value  = false
+  saveAutoError.value    = ''
   try {
-    await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${autoSettingsCardId.value}`, {
+    const res = await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${autoSettingsCardId.value}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editConfig.value),
     })
+    const data = await res.json()
+    if (!res.ok) {
+      saveAutoError.value = data.error ?? 'Could not save settings.'
+      return
+    }
     autoConfigCache.value[autoSettingsCardId.value] = { ...editConfig.value }
     autoConfigSaved.value = true
     setTimeout(() => { autoConfigSaved.value = false }, 2000)
@@ -517,7 +529,6 @@ async function submitAddCard() {
   addCardError.value   = ''
   addCardLoading.value = true
   try {
-    // Step 1: get SetupIntent client_secret from gateway
     const r = await fetch(`${GATEWAY}/setup-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -526,7 +537,6 @@ async function submitAddCard() {
     const { client_secret, error: gwErr } = await r.json()
     if (gwErr) throw new Error(gwErr)
 
-    // Step 2: confirm the setup with card details entered by user
     const { setupIntent, error } = await stripe.confirmCardSetup(client_secret, {
       payment_method: { card: addCardEl },
     })
@@ -545,27 +555,27 @@ async function submitAddCard() {
 // ---------------------------------------------------------------------------
 // Top-Up Modal
 // ---------------------------------------------------------------------------
-const topupModal       = ref(false)
-const topupCard        = ref(null)
-const topupAmount      = ref(20)
-const topupCustom      = ref(false)
-const topupUseNew      = ref(false)
+const topupModal        = ref(false)
+const topupCard         = ref(null)
+const topupAmount       = ref(20)
+const topupCustom       = ref(false)
+const topupUseNew       = ref(false)
 const topupSelectedPmId = ref('')
-const topupSaveCard    = ref(false)
-const topupLoading     = ref(false)
-const topupError       = ref('')
-const topupSuccess     = ref(false)
+const topupSaveCard     = ref(false)
+const topupLoading      = ref(false)
+const topupError        = ref('')
+const topupSuccess      = ref(false)
 
 async function openTopupModal(card) {
-  topupCard.value        = card
-  topupAmount.value      = 20
-  topupCustom.value      = false
-  topupUseNew.value      = savedPMs.value.length === 0
+  topupCard.value         = card
+  topupAmount.value       = 20
+  topupCustom.value       = false
+  topupUseNew.value       = savedPMs.value.length === 0
   topupSelectedPmId.value = savedPMs.value[0]?.id ?? ''
-  topupSaveCard.value    = false
-  topupError.value       = ''
-  topupSuccess.value     = false
-  topupModal.value       = true
+  topupSaveCard.value     = false
+  topupError.value        = ''
+  topupSuccess.value      = false
+  topupModal.value        = true
 
   if (topupUseNew.value) {
     await nextTick()
@@ -602,54 +612,56 @@ async function submitTopup() {
 
   try {
     if (!topupUseNew.value) {
-      // --- Use saved card (off-session, no card input needed) ---
+      // --- Saved card flow ---
       const r = await fetch(`${GATEWAY}/topup/saved`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: selectedUserId.value,
-          travel_card_id: topupCard.value.id,
-          amount_sgd: topupAmount.value,
+          user_id:           selectedUserId.value,
+          travel_card_id:    topupCard.value.id,
+          amount_sgd:        topupAmount.value,
           payment_method_id: topupSelectedPmId.value,
         }),
       })
+
       const d = await r.json()
       if (!r.ok) throw new Error(d.error ?? 'Payment failed')
 
-      // Credit the mock travel card balance
-      const card = travelCards.value.find(c => c.id === topupCard.value.id)
-      if (card) card.balance = +(card.balance + topupAmount.value).toFixed(2)
-      topupCard.value = { ...topupCard.value, balance: card.balance }
+      // ✅ NEW: Payment gateway already credits wallet
+      await fetchTravelCards()
+      const updatedCard = travelCards.value.find(c => c.id === topupCard.value.id)
+      if (updatedCard) topupCard.value = { ...updatedCard }
       topupSuccess.value = true
 
     } else {
-      // --- New card: create PaymentIntent, confirm with Stripe Elements ---
+      // --- New card flow ---
       const r = await fetch(`${GATEWAY}/topup/intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: selectedUserId.value,
+          user_id:        selectedUserId.value,
           travel_card_id: topupCard.value.id,
-          amount_sgd: topupAmount.value,
-          save_card: topupSaveCard.value,
+          amount_sgd:     topupAmount.value,
+          save_card:      topupSaveCard.value,
         }),
       })
+
       const { client_secret, error: gwErr } = await r.json()
       if (gwErr) throw new Error(gwErr)
 
       const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, {
         payment_method: { card: topupCardEl },
       })
+
       if (error) throw new Error(error.message)
       if (paymentIntent.status !== 'succeeded') throw new Error('Payment did not succeed')
 
-      // Credit the mock travel card balance
-      const card = travelCards.value.find(c => c.id === topupCard.value.id)
-      if (card) card.balance = +(card.balance + topupAmount.value).toFixed(2)
-      topupCard.value = { ...topupCard.value, balance: card.balance }
+      // Payment gateway already credits wallet
+      await fetchTravelCards()
+      const updatedCard = travelCards.value.find(c => c.id === topupCard.value.id)
+      if (updatedCard) topupCard.value = { ...updatedCard }
       topupSuccess.value = true
 
-      // Refresh saved cards if we saved this one
       if (topupSaveCard.value) await fetchSavedPMs()
     }
 
@@ -677,7 +689,6 @@ async function submitTopup() {
 .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
 .page-header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
 
-/* Test banner */
 .test-banner {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px;
@@ -695,31 +706,17 @@ async function submitTopup() {
 .mode-test { color: #f59e0b; }
 .mode-live { color: #ef4444; }
 
-/* Layout */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
 .col {}
 
-/* Section card */
-.section-card {
-  background: white; border-radius: 16px;
-  border: 1px solid #e8e8f0; padding: 24px;
-}
-.section-head {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
-}
-.section-head svg {
-  width: 22px; height: 22px; stroke: #4f4caf;
-  fill: none; stroke-width: 2; flex-shrink: 0;
-}
+.section-card { background: white; border-radius: 16px; border: 1px solid #e8e8f0; padding: 24px; }
+.section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.section-head svg { width: 22px; height: 22px; stroke: #4f4caf; fill: none; stroke-width: 2; flex-shrink: 0; }
 .section-head h2 { font-size: 1.05rem; font-weight: 700; margin: 0; flex: 1; }
 .section-sub { font-size: 0.85rem; color: #888; margin: 0 0 16px; }
 
-/* Travel card items */
-.travel-card {
-  border: 2px solid #e8e8f0; border-radius: 12px; padding: 14px 16px;
-  margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
-}
+.travel-card { border: 2px solid #e8e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s; }
 .travel-card:hover { border-color: #b3b0e8; }
 .travel-card.selected { border-color: #4f4caf; background: #f7f7ff; }
 .tc-top { display: flex; justify-content: space-between; align-items: center; }
@@ -730,144 +727,90 @@ async function submitTopup() {
 .low-tag { font-size: 0.65rem; background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; padding: 1px 5px; margin-left: 6px; }
 .tc-actions { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid #eee; padding-top: 12px; }
 .auto-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #555; }
+.auto-row--disabled { opacity: 0.45; }
 .btn-link { background: none; border: none; color: #4f4caf; cursor: pointer; font-size: 0.85rem; text-decoration: underline; padding: 0; }
+.btn-link--disabled { color: #aaa; cursor: not-allowed; text-decoration: none; }
+.toggle-error { width: 100%; font-size: 0.8rem; color: #dc2626; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 6px 10px; }
+.no-card-hint {
+  width: 100%; display: flex; align-items: center; gap: 6px;
+  font-size: 0.78rem; color: #f59e0b; font-weight: 500;
+}
+.no-card-hint svg { width: 13px; height: 13px; stroke: #f59e0b; fill: none; stroke-width: 2; flex-shrink: 0; }
 
-/* Toggle switch */
 .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute; inset: 0; background: #ccc;
-  border-radius: 20px; transition: 0.2s;
-}
-.slider::before {
-  content: ''; position: absolute; width: 14px; height: 14px;
-  left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s;
-}
+.slider { position: absolute; inset: 0; background: #ccc; border-radius: 20px; transition: 0.2s; }
+.slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
 .toggle-switch input:checked + .slider { background: #4f4caf; }
 .toggle-switch input:checked + .slider::before { transform: translateX(16px); }
+.toggle-switch input:disabled + .slider { background: #e0e0e0; cursor: not-allowed; }
 
-/* Payment methods */
 .pm-list { margin-bottom: 12px; }
-.pm-item {
-  display: flex; align-items: center; gap: 12px;
-  border: 1px solid #e8e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
-}
+.pm-item { display: flex; align-items: center; gap: 12px; border: 1px solid #e8e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
 .pm-icon svg { width: 24px; height: 24px; stroke: #4f4caf; fill: none; stroke-width: 1.5; }
 .pm-info { flex: 1; }
 .pm-brand  { font-weight: 600; font-size: 0.9rem; }
 .pm-expiry { font-size: 0.78rem; color: #888; }
-.btn-remove {
-  background: none; border: none; cursor: pointer; padding: 4px;
-  color: #aaa; transition: color 0.15s;
-}
+.btn-remove { background: none; border: none; cursor: pointer; padding: 4px; color: #aaa; transition: color 0.15s; }
 .btn-remove:hover { color: #ef4444; }
 .btn-remove svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
 
 .empty-state { color: #aaa; font-size: 0.9rem; padding: 12px 0; }
 .loading-row { color: #aaa; font-size: 0.9rem; padding: 8px 0; }
 
-/* Auto top-up settings */
 .auto-settings-card { margin-top: 20px; }
 .btn-close-sm { background: none; border: none; cursor: pointer; font-size: 1rem; color: #888; padding: 2px 6px; margin-left: auto; }
 .settings-grid { display: flex; flex-direction: column; gap: 20px; margin: 16px 0; }
 .setting-row { display: flex; flex-direction: column; gap: 8px; }
 .setting-row label { font-size: 0.88rem; font-weight: 600; color: #555; }
 .preset-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.preset-btn {
-  padding: 6px 16px; border: 2px solid #e0e0f0; border-radius: 8px;
-  background: white; cursor: pointer; font-size: 0.9rem; font-weight: 600;
-  color: #4f4caf; transition: all 0.15s;
-}
+.preset-btn { padding: 6px 16px; border: 2px solid #e0e0f0; border-radius: 8px; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #4f4caf; transition: all 0.15s; }
 .preset-btn.active { background: #4f4caf; color: white; border-color: #4f4caf; }
-.custom-input {
-  border: 2px solid #e0e0f0; border-radius: 8px; padding: 6px 12px;
-  font-size: 0.9rem; width: 90px; outline: none;
-}
+.custom-input { border: 2px solid #e0e0f0; border-radius: 8px; padding: 6px 12px; font-size: 0.9rem; width: 90px; outline: none; }
 .custom-input:focus { border-color: #4f4caf; }
-.pm-select {
-  border: 2px solid #e0e0f0; border-radius: 8px; padding: 8px 12px;
-  font-size: 0.9rem; width: 100%; background: white;
-}
+.pm-select { border: 2px solid #e0e0f0; border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; width: 100%; background: white; }
 .hint { font-size: 0.8rem; color: #f59e0b; }
 .settings-actions { display: flex; align-items: center; gap: 12px; }
 .saved-msg { color: #22c55e; font-size: 0.85rem; font-weight: 600; }
+.save-error { color: #dc2626; font-size: 0.85rem; font-weight: 600; }
 
-/* Buttons */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600;
-  cursor: pointer; border: none; transition: all 0.15s;
-}
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
 .btn--primary { background: #4f4caf; color: white; }
 .btn--primary:hover:not(:disabled) { background: #3d3a9e; }
 .btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--outline {
-  background: white; color: #4f4caf;
-  border: 2px solid #4f4caf;
-}
+.btn--outline { background: white; color: #4f4caf; border: 2px solid #4f4caf; }
 .btn--outline:hover { background: #f0f0ff; }
 .btn--full { width: 100%; }
 .btn--sm { padding: 6px 14px; font-size: 0.82rem; }
 .btn--outline svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-/* Modals */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000; padding: 20px;
-}
-.modal {
-  background: white; border-radius: 20px; padding: 32px;
-  width: 100%; max-width: 440px; position: relative;
-  max-height: 90vh; overflow-y: auto;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal { background: white; border-radius: 20px; padding: 32px; width: 100%; max-width: 440px; position: relative; max-height: 90vh; overflow-y: auto; }
 .modal--wide { max-width: 520px; }
-.modal-close {
-  position: absolute; top: 16px; right: 18px;
-  background: #f5f5f8; border: none; border-radius: 8px;
-  width: 32px; height: 32px; cursor: pointer; font-size: 1rem; color: #555;
-}
-.modal-icon {
-  width: 52px; height: 52px; background: #ededfb; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
-}
+.modal-close { position: absolute; top: 16px; right: 18px; background: #f5f5f8; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; color: #555; }
+.modal-icon { width: 52px; height: 52px; background: #ededfb; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
 .modal-icon svg { width: 26px; height: 26px; stroke: #4f4caf; fill: none; stroke-width: 2; }
 .modal h2 { text-align: center; font-size: 1.25rem; margin: 0 0 6px; }
 .modal-sub { text-align: center; color: #888; font-size: 0.88rem; margin: 0 0 24px; }
 
-/* Form fields in modals */
 .field-group { margin-bottom: 20px; }
 .field-group label { display: block; font-size: 0.88rem; font-weight: 600; color: #555; margin-bottom: 8px; }
 
 .stripe-field-wrap label { display: block; font-size: 0.88rem; font-weight: 600; color: #555; margin-bottom: 8px; }
-.stripe-element-box {
-  border: 2px solid #e0e0f0; border-radius: 10px; padding: 12px 14px;
-  background: white; min-height: 46px;
-}
+.stripe-element-box { border: 2px solid #e0e0f0; border-radius: 10px; padding: 12px 14px; background: white; min-height: 46px; }
 .stripe-element-box:focus-within { border-color: #4f4caf; }
 
-.amount-input {
-  width: 100%; border: 2px solid #e0e0f0; border-radius: 10px;
-  padding: 10px 14px; font-size: 1rem; margin-top: 8px; outline: none;
-}
+.amount-input { width: 100%; border: 2px solid #e0e0f0; border-radius: 10px; padding: 10px 14px; font-size: 1rem; margin-top: 8px; outline: none; }
 .amount-input:focus { border-color: #4f4caf; }
 
-/* Pay options */
 .pay-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.pay-option {
-  border: 2px solid #e0e0f0; border-radius: 12px; padding: 12px;
-  cursor: pointer; display: flex; gap: 10px; align-items: flex-start;
-  transition: all 0.15s;
-}
+.pay-option { border: 2px solid #e0e0f0; border-radius: 12px; padding: 12px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; transition: all 0.15s; }
 .pay-option input { margin-top: 2px; }
 .pay-option.active { border-color: #4f4caf; background: #f7f7ff; }
 .pay-option-body strong { display: block; font-size: 0.88rem; }
 .pay-option-body span   { font-size: 0.78rem; color: #888; }
 
-.checkbox-row {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.85rem; color: #555; margin-top: 10px; cursor: pointer;
-}
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #555; margin-top: 10px; cursor: pointer; }
 .checkbox-row input { width: 16px; height: 16px; }
 
 .error-box   { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 14px; }
@@ -876,7 +819,6 @@ async function submitTopup() {
 .test-hint { text-align: center; font-size: 0.8rem; color: #888; margin-top: 14px; }
 .test-hint strong { color: #4f4caf; }
 
-/* Transitions */
 .slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-8px); }
 </style>

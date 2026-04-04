@@ -40,11 +40,11 @@ app.post('/auto-topup', async (c) => {
 
     // Step 3: Create credit transaction in Wallet Service
     // TODO: wallet_ms topup route not yet built
-    // await fetch(`http://wallet_ms:3002/topup`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ card_id, amount, description })
-    // })
+    await fetch(`http://wallet_ms:3002/topup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id, amount, description })
+    })
 
     // Step 4: Notify user about successful top-up via AMQP
     // TODO: notification_ms not yet built

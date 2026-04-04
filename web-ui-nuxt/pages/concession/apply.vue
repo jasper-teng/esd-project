@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <!-- Phase 1: Student Verification -->
+    
     <div v-if="phase === 1" class="form-card">
       <div class="phase-label">
         <span class="phase-badge">Phase 1 of 2</span>
@@ -92,7 +92,6 @@
       </button>
     </div>
 
-    <!-- Phase 2: Application Submission -->
     <div v-if="phase === 2" class="form-card">
       <div class="phase-label">
         <span class="phase-badge phase-badge--done">✓ Phase 1 complete</span>
@@ -158,7 +157,6 @@
       </div>
     </div>
 
-    <!-- Phase 3: Result -->
     <transition name="slide-up">
       <div v-if="phase === 3" class="form-card pending-card">
         <div class="pending-header">
@@ -329,7 +327,6 @@ function reset() {
 <style scoped>
 .page { max-width: 960px; margin: 0 auto; padding: 32px 20px; display: flex; flex-direction: column; gap: 20px; }
 
-/* ── Header — identical to Top Up ── */
 .page-header {
   display: flex; align-items: center; gap: 16px;
   background: linear-gradient(135deg, #4f4caf 0%, #6c6ace 100%);
@@ -343,7 +340,6 @@ function reset() {
 .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
 .page-header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
 
-/* ── Form card ── */
 .form-card { background: white; border: 1px solid #e8e8f0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 0.82rem; font-weight: 600; color: #555; }
@@ -354,21 +350,20 @@ function reset() {
 .label-hint { font-size: 11px; font-weight: 400; color: #bbb; }
 .form-actions { display: flex; gap: 10px; align-items: center; }
 
-/* ── Phase label ── */
 .phase-label { display: flex; align-items: center; gap: 10px; }
 .phase-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; background: #ededfb; color: #4f4caf; }
 .phase-badge--done { background: #d4f7e8; color: #1a6641; }
 .phase-title { font-size: 15px; font-weight: 600; color: #1a1a2e; }
 
-/* ── Info box ── */
+
 .info-box { display: flex; gap: 8px; align-items: flex-start; background: #ededfb; border: 1px solid #c5bef0; border-radius: 10px; padding: 10px 12px; font-size: 12px; font-weight: 500; line-height: 1.5; color: #3d3a9e; }
 .info-box svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; stroke: #4f4caf; stroke-width: 2; fill: none; stroke-linecap: round; }
 
-/* ── Verified banner ── */
+
 .verified-banner { display: flex; align-items: center; gap: 8px; background: #d4f7e8; border: 1px solid #9de0b8; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #1a6641; }
 .verified-banner svg { width: 16px; height: 16px; stroke: #1a6641; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
 
-/* ── Buttons ── */
+
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
 .btn--primary { background: #4f4caf; color: white; flex: 1; }
 .btn--primary:hover:not(:disabled) { background: #3d3a9e; }
@@ -376,25 +371,24 @@ function reset() {
 .btn--ghost { background: white; color: #888; border: 1.5px solid #e0e0f0; }
 .btn--ghost:hover { border-color: #4f4caf; color: #4f4caf; }
 
-/* ── Alert ── */
+
 .alert { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 500; }
 .alert svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
 .alert--error { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
 
-/* ── File upload ── */
 .file-upload { display: flex; align-items: center; gap: 10px; border: 1.5px dashed #e0e0f0; border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; font-size: 13px; color: #bbb; }
 .file-upload:hover { border-color: #4f4caf; color: #4f4caf; }
 .file-upload.has-file { border-color: #4f4caf; border-style: solid; color: #3d3a9e; }
 .file-upload svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
 
-/* ── Payment options ── */
+
 .payment-options { display: flex; gap: 10px; }
 .payment-option { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 12px; border: 1.5px solid #e0e0f0; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; color: #888; transition: all 0.15s; background: white; }
 .payment-option:hover { border-color: #4f4caf; color: #4f4caf; }
 .payment-option.selected { border-color: #4f4caf; background: #ededfb; color: #3d3a9e; font-weight: 600; }
 .payment-option svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
 
-/* ── Station dropdown ── */
+
 .station-dropdown { position: relative; }
 .station-input { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border: 1.5px solid #e0e0f0; border-radius: 10px; background: white; cursor: pointer; transition: border-color 0.15s; gap: 8px; min-height: 40px; }
 .station-input:hover { border-color: #b3b0e8; }
@@ -408,7 +402,7 @@ function reset() {
 .station-option.selected { background: #ededfb; }
 .sname { font-size: 13px; font-weight: 500; color: #1a1a2e; }
 
-/* ── Date picker ── */
+
 .datepicker-wrap { position: relative; }
 .datepicker-input { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1.5px solid #e0e0f0; border-radius: 10px; background: white; cursor: pointer; transition: border-color 0.15s; min-height: 40px; user-select: none; }
 .datepicker-input:hover { border-color: #b3b0e8; }
@@ -447,7 +441,7 @@ function reset() {
 .dp-day--today::after { content: ''; display: block; width: 3px; height: 3px; background: #4f4caf; border-radius: 50%; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); }
 .dp-day--selected { background: #4f4caf !important; color: #fff !important; font-weight: 700; box-shadow: 0 2px 8px rgba(79,76,175,0.4); }
 
-/* ── Timeline ── */
+
 .pending-card { max-width: 560px; }
 .pending-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
 .pending-title { font-size: 15px; font-weight: 600; color: #1a1a2e; }
@@ -462,7 +456,7 @@ function reset() {
 .tl-label { font-size: 13px; font-weight: 500; color: #1a1a2e; }
 .tl-time  { font-size: 11px; color: #888; margin-top: 2px; }
 
-/* ── Result panels ── */
+
 .result-panel { border-radius: 12px; padding: 16px; display: flex; gap: 12px; align-items: flex-start; }
 .result-panel--success { background: #ededfb; border: 1px solid #c5bef0; }
 .result-panel--error   { background: #fef2f2; border: 1px solid #fca5a5; }

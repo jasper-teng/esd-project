@@ -166,7 +166,7 @@ app.delete('/payment-methods/:userId/:pmId', async (c) => {
 //   1. Backend creates PaymentIntent (this endpoint)
 //   2. Frontend calls stripe.confirmCardPayment(client_secret, { payment_method: { card: cardElement } })
 //   3. If save_card = true, card is saved for future use (setup_future_usage: 'off_session')
-//   4. On success, credit the travel card balance
+//   4. On success, wallet is credited via Stripe webhook (payment_intent.succeeded)
 // ---------------------------------------------------------------------------
 app.post('/topup/intent', async (c) => {
   try {
@@ -283,11 +283,27 @@ app.get('/auto-topup/:userId/:travelCardId', (c) => {
 // AUTO TOP-UP SETTINGS — update
 // PUT /auto-topup/:userId/:travelCardId
 // Body: { enabled, threshold_sgd, topup_amount_sgd, payment_method_id }
+//
+// FIX: If trying to enable auto top-up, user must have at least one linked bank card.
 // ---------------------------------------------------------------------------
 app.put('/auto-topup/:userId/:travelCardId', async (c) => {
   try {
-    const key = `${c.req.param('userId')}:${c.req.param('travelCardId')}`;
+    const userId = c.req.param('userId');
+    const key = `${userId}:${c.req.param('travelCardId')}`;
     const body = await c.req.json<AutoTopupConfig>();
+
+    // Block enabling auto top-up if the user has no linked bank card
+    if (body.enabled) {
+      const customerId = userCustomers.get(userId);
+      if (!customerId) {
+        return c.json({ error: 'No linked bank card found. Please add a bank card before enabling auto top-up.' }, 400);
+      }
+      const pms = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
+      if (pms.data.length === 0) {
+        return c.json({ error: 'No linked bank card found. Please add a bank card before enabling auto top-up.' }, 400);
+      }
+    }
+
     autoTopupSettings.set(key, body);
     return c.json({ success: true, config: body });
   } catch (err: unknown) {
@@ -303,6 +319,7 @@ app.put('/auto-topup/:userId/:travelCardId', async (c) => {
 //
 // Handle Transit calls this when processing a tap-in event.
 // If balance < threshold and auto top-up is enabled, charges the saved card.
+// FIX: Returns a clear message if the linked bank card has insufficient funds.
 // ---------------------------------------------------------------------------
 app.post('/topup/auto', async (c) => {
   try {
@@ -363,7 +380,15 @@ app.post('/topup/auto', async (c) => {
   } catch (err: unknown) {
     console.error('[STRIPE] /topup/auto error:', err);
     if (err instanceof Stripe.errors.StripeCardError) {
-      return c.json({ triggered: true, success: false, error: err.message, decline_code: err.decline_code }, 402);
+      const isInsufficient = err.decline_code === 'insufficient_funds';
+      return c.json({
+        triggered: true,
+        success: false,
+        error: isInsufficient
+          ? 'Auto top-up failed: linked bank card has insufficient funds.'
+          : err.message,
+        decline_code: err.decline_code,
+      }, 402);
     }
     return c.json({ error: err instanceof Error ? err.message : 'Stripe error' }, 500);
   }
@@ -395,8 +420,15 @@ app.post('/webhook', async (c) => {
   switch (event.type) {
     case 'payment_intent.succeeded': {
       const intent = event.data.object as Stripe.PaymentIntent;
-      console.log(`[STRIPE] payment_intent.succeeded — user=${intent.metadata.user_id} card=${intent.metadata.travel_card_id} amount=$${intent.amount / 100} source=${intent.metadata.source}`);
-      // Handle Transit should credit Wallet Service here
+      const { travel_card_id, amount_sgd, source } = intent.metadata;
+      console.log(`[STRIPE] payment_intent.succeeded — user=${intent.metadata.user_id} card=${travel_card_id} amount=$${intent.amount / 100} source=${source}`);
+
+      // FIX (Issue 1): Credit wallet for new-card top-ups — these are confirmed on the
+      // frontend so the backend only learns of success via this webhook event.
+      if (source === 'manual_topup_new_card' && travel_card_id && amount_sgd) {
+        await creditWallet(travel_card_id, parseFloat(amount_sgd));
+        console.log(`[WALLET] Credited $${amount_sgd} to card ${travel_card_id}`);
+      }
       break;
     }
     case 'setup_intent.succeeded': {

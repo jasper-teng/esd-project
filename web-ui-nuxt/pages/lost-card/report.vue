@@ -19,13 +19,13 @@
 
     <div v-if="!submitted" class="form-card">
 
-      <!-- Warning banner -->
+      
       <div class="warning-box">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         This action is irreversible. Once reported, the card will be permanently blocked.
       </div>
 
-      <!-- Mode toggles -->
+      
       <div class="action-toggles">
         <button class="toggle-btn" :class="{ 'toggle-btn--active': mode === 'block', 'toggle-btn--inactive': mode !== 'block' }" @click="mode = 'block'">
           <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="9" y1="14" x2="15" y2="17"/><line x1="15" y1="14" x2="9" y2="17"/></svg>
@@ -41,7 +41,7 @@
 
       <div class="form-divider"></div>
 
-      <!-- Lost card -->
+      
       <div class="form-group">
         <div class="field-label-row">
           <span class="field-tag field-tag--red">Lost card</span>
@@ -50,7 +50,7 @@
         <input v-model="form.lostCardId" type="text" placeholder="e.g. EZ-1234567890" />
       </div>
 
-      <!-- Destination card (transfer mode) -->
+      
       <transition name="slide-down">
         <div v-if="mode === 'transfer'" class="dest-group">
           <div class="transfer-connector">
@@ -78,7 +78,6 @@
       </button>
     </div>
 
-    <!-- Result: Success -->
     <transition name="slide-up">
       <div v-if="submitted && result" class="result-card">
         <div class="timeline-header">Processing summary</div>
@@ -148,7 +147,7 @@
       </div>
     </transition>
 
-    <!-- Result: Error -->
+    
     <transition name="slide-up">
       <div v-if="submitted && error" class="error-panel">
         <div class="error-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
@@ -238,18 +237,18 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
 .page-header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
 
-/* ── Form card ── */
+
 .form-card { background: white; border: 1px solid #e8e8f0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 100%; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group input { border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
 .form-group input:focus { border-color: #ef4444; }
 .form-group label { font-size: 0.82rem; font-weight: 600; color: #555; }
 
-/* ── Warning box ── */
+
 .warning-box { display: flex; align-items: flex-start; gap: 8px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 500; color: #dc2626; line-height: 1.5; }
 .warning-box svg { width: 14px; height: 14px; stroke: #dc2626; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; margin-top: 1px; }
 
-/* ── Action toggles ── */
+
 .action-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .toggle-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 13px; border-radius: 10px; border: 1.5px solid #e0e0f0; background: white; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; transition: all .2s; font-family: inherit; }
 .toggle-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -258,23 +257,23 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .mode-desc { font-size: 12px; color: #888; line-height: 1.5; margin: -4px 0 -2px; }
 .form-divider { height: 1px; background: #f0f0f0; }
 
-/* ── Field label row ── */
+
 .field-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .field-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 2px 8px; border-radius: 20px; }
 .field-tag--red    { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
 .field-tag--purple { background: #ededfb; color: #3d3a9e; border: 1px solid #c5bef0; }
 
-/* ── Transfer connector ── */
+
 .dest-group { display: flex; flex-direction: column; gap: 10px; }
 .transfer-connector { display: flex; align-items: center; gap: 10px; }
 .connector-line { flex: 1; height: 1px; background: repeating-linear-gradient(90deg, #e0e0f0 0 6px, transparent 6px 10px); }
 .connector-label { font-size: 11px; font-weight: 600; color: #bbb; white-space: nowrap; text-transform: uppercase; letter-spacing: .5px; }
 
-/* ── Info box ── */
+
 .info-box { display: flex; gap: 8px; align-items: flex-start; background: #ededfb; border: 1px solid #c5bef0; border-radius: 10px; padding: 10px 12px; font-size: 12px; font-weight: 500; line-height: 1.5; color: #3d3a9e; }
 .info-box svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; stroke: #4f4caf; stroke-width: 2; fill: none; stroke-linecap: round; }
 
-/* ── Buttons ── */
+
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; }
 .btn--red { background: #ef4444; color: white; width: 100%; }
 .btn--red:hover:not(:disabled) { background: #dc2626; transform: translateY(-1px); }
@@ -282,11 +281,11 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .btn--ghost { background: white; color: #888; border: 1.5px solid #e0e0f0; }
 .btn--ghost:hover { border-color: #4f4caf; color: #4f4caf; }
 
-/* ── Spinner ── */
+
 .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Result card ── */
+
 .result-card { background: white; border: 1.5px solid #c5bef0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 100%; }
 .timeline-header { font-size: 14px; font-weight: 600; color: #1a1a2e; }
 .timeline { display: flex; flex-direction: column; }
@@ -299,7 +298,7 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .tl-label { font-size: 12px; font-weight: 600; color: #1a1a2e; }
 .tl-time  { font-size: 11px; color: #888; margin-top: 2px; }
 
-/* ── Transfer summary ── */
+
 .transfer-summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fafafa; border-radius: 10px; padding: 14px; }
 .transfer-card { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 4px; }
 .transfer-card--lost { background: #fef2f2; border: 1px solid #fca5a5; }
@@ -309,13 +308,13 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .tc-amount { font-size: 13px; font-weight: 600; color: #3d3a9e; margin-top: 2px; }
 .transfer-arrow { width: 20px; height: 20px; stroke: #aaa; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
-/* ── Detail table ── */
+
 .detail-table { display: flex; flex-direction: column; gap: 4px; }
 .detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
 .detail-key { color: #888; font-weight: 500; }
 .detail-val { color: #1a1a2e; font-weight: 600; }
 
-/* ── Alerts ── */
+
 .sub-alert { padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 500; line-height: 1.5; background: #ededfb; border: 1px solid #c5bef0; color: #3d3a9e; }
 .notify-note { display: flex; align-items: center; gap: 7px; background: #ededfb; border: 1px solid #c5bef0; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: #3d3a9e; }
 .notify-note svg { width: 13px; height: 13px; stroke: #4f4caf; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
@@ -325,7 +324,7 @@ function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.va
 .result-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
 .result-msg   { font-size: 12px; color: #555; margin-top: 4px; line-height: 1.5; }
 
-/* ── Transitions ── */
+
 .slide-down-enter-active, .slide-down-leave-active { transition: all .28s ease; overflow: hidden; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-6px); max-height: 0; }
 .slide-down-enter-to, .slide-down-leave-from { max-height: 400px; }

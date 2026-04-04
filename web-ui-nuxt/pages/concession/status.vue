@@ -109,7 +109,7 @@ async function handleCheck(id) {
 <style scoped>
 @import '@/assets/pages.css';
 
-/* ── Page header ── */
+
 .status-header-box {
   background: #ffffff; border: 1px solid var(--border);
   border-radius: var(--r); display: flex; align-items: center; gap: 16px; padding: 20px 22px;
