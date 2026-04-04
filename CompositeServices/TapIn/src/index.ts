@@ -31,13 +31,13 @@ app.post('/tap-in', async (c) => {
     // const tripRes = await fetch(`http://trip_ms:3003/getTrip?card_id=${card_id}`)
     // const tripData = await tripRes.json()
 
-    // Step 4: Resolve incomplete journey if exists
-    // TODO: trip_ms not yet built
+    // Step 4: Resolve incomplete journey if exists (calls Manage Incomplete composite)
+    // TODO: uncomment when trip_ms is ready
     // if (tripData.incomplete) {
-    //   await fetch(`http://trip_ms:3003/resolveIncomplete`, {
+    //   await fetch(`http://manage_incomplete_composite:4002/manage-incomplete`, {
     //     method: 'POST',
     //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ card_id, trip_id: tripData.trip_id, origin: tripData.origin, concession_type: tripData.concession_type })
+    //     body: JSON.stringify({ card_id, trip_id: tripData.trip_id, origin: tripData.origin, concession_type: tripData.concession_type, transport_type })
     //   })
     // }
 

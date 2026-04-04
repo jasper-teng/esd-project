@@ -65,6 +65,19 @@ services:
     networks:
       - esd-network
 
+  manage_incomplete_composite:
+    build:
+      context: ./CompositeServices/ManageIncomplete
+      dockerfile: ManageIncomplete.Dockerfile
+    ports:
+      - '4002:4002'
+    env_file:
+      - .env.docker
+    depends_on:
+      - wallet_ms
+    networks:
+      - esd-network
+
 networks:
   esd-network:
     driver: bridge
