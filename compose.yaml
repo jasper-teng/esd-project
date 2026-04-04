@@ -92,6 +92,19 @@ services:
     networks:
       - esd-network
 
+  auto_topup_composite:
+    build:
+      context: ./CompositeServices/AutoTopup
+      dockerfile: AutoTopup.Dockerfile
+    ports:
+      - '4004:4004'
+    env_file:
+      - .env.docker
+    depends_on:
+      - wallet_ms
+    networks:
+      - esd-network
+
 networks:
   esd-network:
     driver: bridge
