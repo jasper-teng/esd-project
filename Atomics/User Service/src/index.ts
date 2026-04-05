@@ -20,7 +20,7 @@ app.get('/health', (c) => {
 // POST /user/card — link a user to a card
 app.post('/user/card', async (c) => {
   const body = await c.req.json();
-  const { user_id, card_id, concession_type, interim_start_date, existing_card_id } = body;
+  const { user_id, card_id, interim_start_date, existing_card_id } = body;
 
   if (!user_id || !card_id) {
     return c.json({ code: 400, message: 'user_id and card_id are required' }, 400);
@@ -29,7 +29,6 @@ app.post('/user/card', async (c) => {
   const newLink = await db.insert(userCard).values({
     user_id,
     card_id,
-    concession_type: concession_type ?? 'adult',
     is_active: true,
     interim_start_date: interim_start_date ? new Date(interim_start_date) : null,
     existing_card_id: existing_card_id ?? null,

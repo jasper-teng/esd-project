@@ -24,6 +24,17 @@ app.get('/test', async (c) => {
   return c.json(result)
 })
 
+app.get('/wallet/:card_id', async (c) => {
+  const card_id = c.req.param('card_id')
+  const result = await db.select().from(wallet).where(eq(wallet.card_id, Number(card_id)))
+
+  if (result.length === 0) {
+    return c.json({ code: 404, message: 'Wallet not found' }, 404)
+  }
+
+  return c.json({ code: 200, data: result[0] })
+})
+
 app.post('/topup', async (c) => {
   const { card_id, amount } = await c.req.json()
 
