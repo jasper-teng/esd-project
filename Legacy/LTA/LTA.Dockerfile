@@ -2,11 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 COPY . .
 
 EXPOSE 3007
 
-CMD ["npm", "run", "dev"]
+CMD ["npx", "tsx", "src/index.ts"]

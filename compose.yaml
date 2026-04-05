@@ -46,6 +46,33 @@ services:
     networks:
       - esd-network
 
+
+  studentverificationdb:
+    image: postgres:16
+    ports:
+      - "5434:5432"          
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=student_verification
+    networks:
+      - esd-network
+
+  student-verification:
+    build:
+      context: ./Legacy/StudentVerification
+      dockerfile: StudentVerification.Dockerfile
+    ports:
+      - "3020:3020"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@studentverificationdb:5432/student_verification
+      - STUDENT_VERIFICATION_PORT=3020
+    depends_on:
+      - studentverificationdb
+    networks:
+      - esd-network
+
+
   wallet_ms:
     build: 
       context: ./Atomics/Wallet

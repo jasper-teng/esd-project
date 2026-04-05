@@ -299,10 +299,27 @@ function handleFileChange(e) { const file = e.target.files[0]; if (file) form.va
 
 async function handleVerify() {
   verifying.value = true; verifyError.value = ''
-  await new Promise(r => setTimeout(r, 1200))
-  const id = verify.value.idNumber.trim().toUpperCase()
-  if (!id.match(/^[ST]\d{7}[A-Z]$/)) { verifyError.value = 'Student verification failed — NRIC not found in student records. Please check your details.'; verifying.value = false; return }
-  verifiedAt.value = new Date().toLocaleTimeString('en-SG'); verifying.value = false; phase.value = 2
+  try {
+    const res = await fetch('http://localhost:3020/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identification_number: verify.value.idNumber.trim().toUpperCase(),
+        school: verify.value.school,
+        date_of_birth: verify.value.dob || undefined
+      })
+    })
+    const data = await res.json()
+    if (data.verified) {
+      verifiedAt.value = new Date().toLocaleTimeString('en-SG')
+      phase.value = 2
+    } else {
+      verifyError.value = data.reason ?? 'Student verification failed.'
+    }
+  } catch (err) {
+    verifyError.value = 'Could not reach the Student Verification service.'
+  }
+  verifying.value = false
 }
 
 async function handleSubmit() {
