@@ -1,0 +1,295 @@
+{
+  "_metadata": {
+    "description": "SimplyGo Fare Service Configuration — based on actual Singapore PTC/LTA fare rules effective 27 Dec 2025",
+    "version": "1.0.0",
+    "effective_date": "2025-12-27",
+    "source": "LTA fare table (lta.gov.sg), PTC fare structure (ptc.gov.sg), SimplyGo transfer rules (simplygo.com.sg)",
+    "notes": [
+      "All fares in SGD",
+      "Distance in km",
+      "Bus and MRT/LRT use the same distance-based fare table (unified fare structure)",
+      "Fare is calculated on cumulative journey distance across valid transfers, not per-trip",
+      "Fare Service is a pure computation engine: receives distance_km, concession_type, is_transfer, tap_in_time as inputs; returns fare amount"
+    ]
+  },
+
+  "fare_tables": {
+    "_description": "Distance-based card fares by concession type. Each entry: [max_distance_km, fare_sgd]. Last entry with max_distance null means '>= previous threshold'. Fare applies to CUMULATIVE journey distance across valid transfers.",
+
+    "adult": {
+      "basic": [
+        { "max_distance_km": 3.2,  "fare": 1.28 },
+        { "max_distance_km": 4.2,  "fare": 1.38 },
+        { "max_distance_km": 5.2,  "fare": 1.49 },
+        { "max_distance_km": 6.2,  "fare": 1.59 },
+        { "max_distance_km": 7.2,  "fare": 1.68 },
+        { "max_distance_km": 8.2,  "fare": 1.75 },
+        { "max_distance_km": 9.2,  "fare": 1.82 },
+        { "max_distance_km": 10.2, "fare": 1.86 },
+        { "max_distance_km": 11.2, "fare": 1.90 },
+        { "max_distance_km": 12.2, "fare": 1.94 },
+        { "max_distance_km": 13.2, "fare": 1.98 },
+        { "max_distance_km": 14.2, "fare": 2.02 },
+        { "max_distance_km": 15.2, "fare": 2.07 },
+        { "max_distance_km": 16.2, "fare": 2.11 },
+        { "max_distance_km": 17.2, "fare": 2.15 },
+        { "max_distance_km": 18.2, "fare": 2.20 },
+        { "max_distance_km": 19.2, "fare": 2.24 },
+        { "max_distance_km": 20.2, "fare": 2.27 },
+        { "max_distance_km": 21.2, "fare": 2.30 },
+        { "max_distance_km": 22.2, "fare": 2.33 },
+        { "max_distance_km": 23.2, "fare": 2.36 },
+        { "max_distance_km": 24.2, "fare": 2.38 },
+        { "max_distance_km": 25.2, "fare": 2.40 },
+        { "max_distance_km": 26.2, "fare": 2.42 },
+        { "max_distance_km": 27.2, "fare": 2.43 },
+        { "max_distance_km": 28.2, "fare": 2.44 },
+        { "max_distance_km": 29.2, "fare": 2.45 },
+        { "max_distance_km": 30.2, "fare": 2.46 },
+        { "max_distance_km": 31.2, "fare": 2.47 },
+        { "max_distance_km": 32.2, "fare": 2.48 },
+        { "max_distance_km": 33.2, "fare": 2.49 },
+        { "max_distance_km": 34.2, "fare": 2.50 },
+        { "max_distance_km": 35.2, "fare": 2.51 },
+        { "max_distance_km": 36.2, "fare": 2.52 },
+        { "max_distance_km": 37.2, "fare": 2.53 },
+        { "max_distance_km": 38.2, "fare": 2.54 },
+        { "max_distance_km": 39.2, "fare": 2.55 },
+        { "max_distance_km": 40.2, "fare": 2.56 },
+        { "max_distance_km": null,  "fare": 2.57 }
+      ],
+      "express": [
+        { "max_distance_km": 3.2,  "fare": 2.28 },
+        { "max_distance_km": 4.2,  "fare": 2.38 },
+        { "max_distance_km": 5.2,  "fare": 2.49 },
+        { "max_distance_km": 6.2,  "fare": 2.59 },
+        { "max_distance_km": 7.2,  "fare": 2.68 },
+        { "max_distance_km": 8.2,  "fare": 2.75 },
+        { "max_distance_km": 9.2,  "fare": 2.82 },
+        { "max_distance_km": 10.2, "fare": 2.86 },
+        { "max_distance_km": 11.2, "fare": 2.90 },
+        { "max_distance_km": 12.2, "fare": 2.94 },
+        { "max_distance_km": 13.2, "fare": 2.98 },
+        { "max_distance_km": 14.2, "fare": 3.02 },
+        { "max_distance_km": 15.2, "fare": 3.07 },
+        { "max_distance_km": 16.2, "fare": 3.11 },
+        { "max_distance_km": 17.2, "fare": 3.15 },
+        { "max_distance_km": 18.2, "fare": 3.20 },
+        { "max_distance_km": 19.2, "fare": 3.24 },
+        { "max_distance_km": 20.2, "fare": 3.27 },
+        { "max_distance_km": 21.2, "fare": 3.30 },
+        { "max_distance_km": 22.2, "fare": 3.33 },
+        { "max_distance_km": 23.2, "fare": 3.36 },
+        { "max_distance_km": 24.2, "fare": 3.38 },
+        { "max_distance_km": 25.2, "fare": 3.40 },
+        { "max_distance_km": 26.2, "fare": 3.42 },
+        { "max_distance_km": 27.2, "fare": 3.43 },
+        { "max_distance_km": 28.2, "fare": 3.44 },
+        { "max_distance_km": 29.2, "fare": 3.45 },
+        { "max_distance_km": 30.2, "fare": 3.46 },
+        { "max_distance_km": 31.2, "fare": 3.47 },
+        { "max_distance_km": 32.2, "fare": 3.48 },
+        { "max_distance_km": 33.2, "fare": 3.49 },
+        { "max_distance_km": 34.2, "fare": 3.50 },
+        { "max_distance_km": 35.2, "fare": 3.51 },
+        { "max_distance_km": 36.2, "fare": 3.52 },
+        { "max_distance_km": 37.2, "fare": 3.53 },
+        { "max_distance_km": 38.2, "fare": 3.54 },
+        { "max_distance_km": 39.2, "fare": 3.55 },
+        { "max_distance_km": 40.2, "fare": 3.56 },
+        { "max_distance_km": null,  "fare": 3.57 }
+      ]
+    },
+
+    "student": {
+      "_description": "Student concession card fares. Capped at 7.2km — any distance above 7.2km pays the same fare as 7.2km.",
+      "basic": [
+        { "max_distance_km": 3.2,  "fare": 0.52 },
+        { "max_distance_km": 4.2,  "fare": 0.60 },
+        { "max_distance_km": 5.2,  "fare": 0.66 },
+        { "max_distance_km": 6.2,  "fare": 0.71 },
+        { "max_distance_km": 7.2,  "fare": 0.74 },
+        { "max_distance_km": null,  "fare": 0.78 }
+      ],
+      "express": [
+        { "max_distance_km": 3.2,  "fare": 1.02 },
+        { "max_distance_km": 4.2,  "fare": 1.10 },
+        { "max_distance_km": 5.2,  "fare": 1.16 },
+        { "max_distance_km": 6.2,  "fare": 1.21 },
+        { "max_distance_km": 7.2,  "fare": 1.24 },
+        { "max_distance_km": null,  "fare": 1.28 }
+      ]
+    },
+
+    "senior": {
+      "_description": "Senior Citizen / Persons with Disabilities concession card fares. Capped at 7.2km.",
+      "basic": [
+        { "max_distance_km": 3.2,  "fare": 0.69 },
+        { "max_distance_km": 4.2,  "fare": 0.79 },
+        { "max_distance_km": 5.2,  "fare": 0.87 },
+        { "max_distance_km": 6.2,  "fare": 0.94 },
+        { "max_distance_km": 7.2,  "fare": 1.00 },
+        { "max_distance_km": null,  "fare": 1.07 }
+      ],
+      "express": [
+        { "max_distance_km": 3.2,  "fare": 1.34 },
+        { "max_distance_km": 4.2,  "fare": 1.44 },
+        { "max_distance_km": 5.2,  "fare": 1.52 },
+        { "max_distance_km": 6.2,  "fare": 1.59 },
+        { "max_distance_km": 7.2,  "fare": 1.65 },
+        { "max_distance_km": null,  "fare": 1.72 }
+      ]
+    },
+
+    "workfare": {
+      "_description": "Workfare Transport Concession Scheme card fares. Full distance table like adult.",
+      "basic": [
+        { "max_distance_km": 3.2,  "fare": 0.78 },
+        { "max_distance_km": 4.2,  "fare": 0.89 },
+        { "max_distance_km": 5.2,  "fare": 0.98 },
+        { "max_distance_km": 6.2,  "fare": 1.06 },
+        { "max_distance_km": 7.2,  "fare": 1.13 },
+        { "max_distance_km": 8.2,  "fare": 1.20 },
+        { "max_distance_km": 9.2,  "fare": 1.26 },
+        { "max_distance_km": 10.2, "fare": 1.29 },
+        { "max_distance_km": 11.2, "fare": 1.32 },
+        { "max_distance_km": 12.2, "fare": 1.35 },
+        { "max_distance_km": 13.2, "fare": 1.38 },
+        { "max_distance_km": 14.2, "fare": 1.41 },
+        { "max_distance_km": 15.2, "fare": 1.44 },
+        { "max_distance_km": 16.2, "fare": 1.47 },
+        { "max_distance_km": 17.2, "fare": 1.50 },
+        { "max_distance_km": 18.2, "fare": 1.53 },
+        { "max_distance_km": 19.2, "fare": 1.56 },
+        { "max_distance_km": 20.2, "fare": 1.59 },
+        { "max_distance_km": 21.2, "fare": 1.62 },
+        { "max_distance_km": 22.2, "fare": 1.65 },
+        { "max_distance_km": 23.2, "fare": 1.68 },
+        { "max_distance_km": 24.2, "fare": 1.70 },
+        { "max_distance_km": 25.2, "fare": 1.71 },
+        { "max_distance_km": 26.2, "fare": 1.72 },
+        { "max_distance_km": 27.2, "fare": 1.73 },
+        { "max_distance_km": 28.2, "fare": 1.74 },
+        { "max_distance_km": 29.2, "fare": 1.75 },
+        { "max_distance_km": 30.2, "fare": 1.76 },
+        { "max_distance_km": 31.2, "fare": 1.77 },
+        { "max_distance_km": 32.2, "fare": 1.78 },
+        { "max_distance_km": 33.2, "fare": 1.79 },
+        { "max_distance_km": 34.2, "fare": 1.80 },
+        { "max_distance_km": 35.2, "fare": 1.81 },
+        { "max_distance_km": 36.2, "fare": 1.82 },
+        { "max_distance_km": 37.2, "fare": 1.83 },
+        { "max_distance_km": 38.2, "fare": 1.84 },
+        { "max_distance_km": 39.2, "fare": 1.85 },
+        { "max_distance_km": 40.2, "fare": 1.86 },
+        { "max_distance_km": null,  "fare": 1.87 }
+      ],
+      "express": [
+        { "max_distance_km": 3.2,  "fare": 1.48 },
+        { "max_distance_km": 4.2,  "fare": 1.59 },
+        { "max_distance_km": 5.2,  "fare": 1.68 },
+        { "max_distance_km": 6.2,  "fare": 1.76 },
+        { "max_distance_km": 7.2,  "fare": 1.83 },
+        { "max_distance_km": 8.2,  "fare": 1.90 },
+        { "max_distance_km": 9.2,  "fare": 1.96 },
+        { "max_distance_km": 10.2, "fare": 1.99 },
+        { "max_distance_km": 11.2, "fare": 2.02 },
+        { "max_distance_km": 12.2, "fare": 2.05 },
+        { "max_distance_km": 13.2, "fare": 2.08 },
+        { "max_distance_km": 14.2, "fare": 2.11 },
+        { "max_distance_km": 15.2, "fare": 2.14 },
+        { "max_distance_km": 16.2, "fare": 2.17 },
+        { "max_distance_km": 17.2, "fare": 2.20 },
+        { "max_distance_km": 18.2, "fare": 2.23 },
+        { "max_distance_km": 19.2, "fare": 2.26 },
+        { "max_distance_km": 20.2, "fare": 2.29 },
+        { "max_distance_km": 21.2, "fare": 2.32 },
+        { "max_distance_km": 22.2, "fare": 2.35 },
+        { "max_distance_km": 23.2, "fare": 2.38 },
+        { "max_distance_km": 24.2, "fare": 2.40 },
+        { "max_distance_km": 25.2, "fare": 2.41 },
+        { "max_distance_km": 26.2, "fare": 2.42 },
+        { "max_distance_km": 27.2, "fare": 2.43 },
+        { "max_distance_km": 28.2, "fare": 2.44 },
+        { "max_distance_km": 29.2, "fare": 2.45 },
+        { "max_distance_km": 30.2, "fare": 2.46 },
+        { "max_distance_km": 31.2, "fare": 2.47 },
+        { "max_distance_km": 32.2, "fare": 2.48 },
+        { "max_distance_km": 33.2, "fare": 2.49 },
+        { "max_distance_km": 34.2, "fare": 2.50 },
+        { "max_distance_km": 35.2, "fare": 2.51 },
+        { "max_distance_km": 36.2, "fare": 2.52 },
+        { "max_distance_km": 37.2, "fare": 2.53 },
+        { "max_distance_km": 38.2, "fare": 2.54 },
+        { "max_distance_km": 39.2, "fare": 2.55 },
+        { "max_distance_km": 40.2, "fare": 2.56 },
+        { "max_distance_km": null,  "fare": 2.57 }
+      ]
+    },
+
+    "child": {
+      "_description": "Children below 7 with Child Concession Card travel free. Children 7+ without concession pay adult fares.",
+      "basic": [
+        { "max_distance_km": null, "fare": 0.00 }
+      ],
+      "express": [
+        { "max_distance_km": null, "fare": 0.00 }
+      ]
+    }
+  },
+
+  "transfer_rules": {
+    "_description": "Rules governing when consecutive trips count as a single journey (cumulative distance fare) vs a new journey (separate fare calculation from zero).",
+    "max_transfers_per_journey": 5,
+    "max_journey_duration_minutes": 120,
+    "transfer_time_limits": {
+      "bus_to_bus_minutes": 45,
+      "bus_to_train_minutes": 45,
+      "train_to_bus_minutes": 45,
+      "train_to_train_minutes": 15
+    },
+    "invalid_transfer_conditions": [
+      "Same bus service number as preceding trip (including subsidiaries, e.g. 97/97e, 12/12e)",
+      "Exit and re-entry at the same train station (except Bukit Panjang, Newton, Tampines interchange stations)",
+      "Transfer time exceeded",
+      "More than 5 transfers in a single journey",
+      "Last tap-in exceeds 2 hours from first tap-in of journey"
+    ],
+    "interchange_exceptions": {
+      "_description": "At these stations, tap-out and tap-in to transfer between lines is required and counts as a valid transfer if done within 15 minutes.",
+      "stations": ["Bukit Panjang", "Newton", "Tampines"]
+    }
+  },
+
+  "pre_peak_discount": {
+    "_description": "Morning Pre-Peak Fares Scheme: discount on the rail leg of a journey for early travellers.",
+    "enabled": true,
+    "eligible_days": "weekdays_excluding_public_holidays",
+    "tap_in_before": "07:45",
+    "applies_to": "rail_leg_only",
+    "discount_amount": 0.50,
+    "discount_rule": "min(0.50, rail_leg_fare)",
+    "notes": "Discount is $0.50 or the fare for the rail trip of the journey, whichever is lower. Applied only to the rail leg, not bus legs."
+  },
+
+  "maximum_fares": {
+    "_description": "Maximum fare charged when a trip is incomplete (missing tap-out). Equivalent to the >40.2km fare for the relevant concession type and service type.",
+    "adult": { "basic": 2.57, "express": 3.57 },
+    "student": { "basic": 0.78, "express": 1.28 },
+    "senior": { "basic": 1.07, "express": 1.72 },
+    "workfare": { "basic": 1.87, "express": 2.57 },
+    "child": { "basic": 0.00, "express": 0.00 }
+  },
+
+  "minimum_balance_for_travel": {
+    "_description": "Minimum stored value balance required before tapping in. Cards below this balance are denied entry at fare gates / bus readers.",
+    "amount": 5.00,
+    "currency": "SGD"
+  },
+
+  "overstay_penalty": {
+    "_description": "If a commuter spends more than 2 hours within the rail network, an administrative charge applies at exit.",
+    "duration_limit_minutes": 120,
+    "charge": 2.00
+  }
+}

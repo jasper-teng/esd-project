@@ -14,7 +14,7 @@ services:
 
   bus_ms:
     build:
-      context: ./Atomics/Bus
+      context: ./Legacy/Bus
       dockerfile: Bus.Dockerfile
     ports:
       - '3003:3003'
@@ -23,10 +23,26 @@ services:
 
   mrt_ms:
     build:
-      context: ./Atomics/Mrt
+      context: ./Legacy/Mrt
       dockerfile: Mrt.Dockerfile
     ports:
       - '3004:3004'
+    networks:
+      - esd-network
+
+  lta_ms:
+    build:
+      context: ./Legacy/LTA
+      dockerfile: LTA.Dockerfile
+    ports:
+      - '3007:3007'
+    environment:
+      - BUS_SERVICE_URL=http://bus_ms:3003
+      - MRT_SERVICE_URL=http://mrt_ms:3004
+      - LTA_PORT=3007
+    depends_on:
+      - bus_ms
+      - mrt_ms
     networks:
       - esd-network
 
@@ -124,6 +140,41 @@ services:
     networks:
       - esd-network
 
+  trip_ms:
+    build:
+      context: ./Atomics/Trip Service
+      dockerfile: Trip.Dockerfile
+    ports:
+      - '3005:3005'
+    env_file:
+      - .env.docker
+    depends_on:
+      - tripdb
+    networks:
+      - esd-network
+
+  user_ms:
+    build:
+      context: ./Atomics/User Service
+      dockerfile: User.Dockerfile
+    ports:
+      - '3006:3006'
+    env_file:
+      - .env.docker
+    depends_on:
+      - userdb
+    networks:
+      - esd-network
+
+  fare_ms:
+    build:
+      context: ./Atomics/Fare Service
+      dockerfile: Dockerfile
+    ports:
+      - '5004:5004'
+    networks:
+      - esd-network
+
   payment_gateway:
     build:
       context: ./api/PaymentGateway
@@ -134,6 +185,32 @@ services:
       - .env.docker
     depends_on:
       - wallet_ms
+    networks:
+      - esd-network
+
+  tripdb:
+    image: postgres:16
+    ports:
+      - '5434:5432'
+    volumes:
+      - ~/apps/trip:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    networks:
+      - esd-network
+
+  userdb:
+    image: postgres:16
+    ports:
+      - '5435:5432'
+    volumes:
+      - ~/apps/user:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
     networks:
       - esd-network
 
