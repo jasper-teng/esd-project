@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { publishNotification } from './amqp.js'
 
 const app = new Hono()
 app.use('*', cors({ origin: '*' }))
@@ -139,8 +140,12 @@ app.post('/tap-out', async (c) => {
       })
     })
 
-    // Step 8: Publish AMQP notification (placeholder — handled by Notification Service)
-    // In full implementation, publish to RabbitMQ here
+    // Step 8: Publish AMQP notification to Notification Service
+    await publishNotification({
+      type: 'tap_out',
+      card_id,
+      message: `Fare of $${fare_amount.toFixed(2)} deducted. Trip completed.`,
+    })
 
     return c.json({
       status: 'success',

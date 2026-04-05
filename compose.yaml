@@ -113,6 +113,7 @@ services:
       - wallet_ms
       - trip_ms
       - fare_ms
+      - rabbitmq
     networks:
       - esd-network
 
@@ -130,6 +131,23 @@ services:
       - trip_ms
       - fare_ms
       - lta_ms
+      - rabbitmq
+    networks:
+      - esd-network
+
+  process_concession_composite:
+    build:
+      context: ./CompositeServices/Process Concession
+      dockerfile: ProcessConcession.Dockerfile
+    ports:
+      - '4005:4005'
+    env_file:
+      - .env.docker
+    depends_on:
+      - card_ms
+      - user_ms
+      - payment_gateway
+      - rabbitmq
     networks:
       - esd-network
 
@@ -144,6 +162,7 @@ services:
     depends_on:
       - wallet_ms
       - payment_gateway
+      - rabbitmq
     networks:
       - esd-network
 
@@ -218,6 +237,27 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    networks:
+      - esd-network
+
+  notification_ms:
+    build:
+      context: ./Atomics/Notification
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=notifications
+      - OUTSYSTEMS_NOTIFICATION_URL=https://your-outsystems-env.outsystemscloud.com/YourApp/rest/Notify
+    depends_on:
+      - rabbitmq
+    networks:
+      - esd-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
     networks:
       - esd-network
 

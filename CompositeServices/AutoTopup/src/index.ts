@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { publishNotification } from './amqp.js'
 
 const app = new Hono()
 
@@ -46,17 +47,12 @@ app.post('/auto-topup', async (c) => {
       body: JSON.stringify({ card_id, amount, description })
     })
 
-    // Step 4: Notify user about successful top-up via AMQP
-    // TODO: notification_ms not yet built
-    // await fetch(`http://notification_ms/notify`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ card_id, message: `Auto top-up of $${amount} was successful.` })
-    // })
-
-    // Step 5: Send SMS
-    // TODO: notification_ms not yet built
-    // SMS sent via AMQP or HTTP through notification_ms
+    // Step 4: Publish AMQP notification to Notification Service
+    await publishNotification({
+      type: 'auto_topup',
+      card_id,
+      message: `Auto top-up of $${amount} was successful.`,
+    })
 
     return c.json({
       status: 'success',

@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
-    "hono": "^4.7.9"
+    "hono": "^4.7.9",
+    "amqplib": "^0.10.4"
   },
   "devDependencies": {
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "@types/amqplib": "^0.10.5"
   }
 }

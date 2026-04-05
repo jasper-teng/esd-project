@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { publishNotification } from './amqp.js'
 
 const app = new Hono()
 app.use('*', cors({ origin: '*' }))
@@ -60,6 +61,13 @@ app.post('/manage-incomplete', async (c) => {
     if (!updateRes.ok) {
       return c.json({ status: 'error', reason: 'Failed to update trip record' }, 502)
     }
+
+    // Publish AMQP notification to Notification Service
+    await publishNotification({
+      type: 'incomplete_journey',
+      card_id,
+      message: `Maximum fare of $${fareAmount.toFixed(2)} charged for incomplete journey.`,
+    })
 
     return c.json({
       status: 'success',
