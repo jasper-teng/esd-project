@@ -85,14 +85,14 @@ export const graph: Record<string, [string, number][]> = {
   Newton: [
     ["Novena", 1.2],
     ["Orchard", 1.2],
-    ["Stevens", 1.2],
-    ["LittleIndia", 1.0]
+    ["Stevens", 1.6],
+    ["LittleIndia", 1.4]
   ],
   Orchard: [
     ["Newton", 1.2],
     ["Somerset", 1.0],
     ["OrchardBoulevard", 1.0],
-    ["GreatWorld", 1.4]
+    ["GreatWorld", 1.0]
   ],
   Somerset: [
     ["Orchard", 1.0],
@@ -312,72 +312,66 @@ export const graph: Record<string, [string, number][]> = {
     ["Marymount", 1.2],
     ["BotanicGardens", 3.9],
   ],
-
-
-
-
-  
-  //Start here haven't add the right data from here onwards
   Stevens: [
     ["Caldecott", 3.0],
-    ["Napier", 1.0],
-    ["BotanicGardens", 1.5],
-    ["Newton", 1.2]
+    ["Napier", 1.7],
+    ["BotanicGardens", 1.1],
+    ["Newton", 1.6]
   ],
   Napier: [
-    ["Stevens", 1.0],
-    ["OrchardBoulevard", 1.2]
+    ["Stevens", 1.7],
+    ["OrchardBoulevard", 0.9]
   ],
   OrchardBoulevard: [
-    ["Napier", 1.2],
+    ["Napier", 0.9],
     ["Orchard", 1.0]
   ],
   GreatWorld: [
-    ["Orchard", 1.4],
-    ["Havelock", 1.0]
+    ["Orchard", 1.0],
+    ["Havelock", 0.7]
   ],
   Havelock: [
-    ["GreatWorld", 1.0],
+    ["GreatWorld", 0.7],
     ["OutramPark", 1.0]
   ],
   Maxwell: [
     ["OutramPark", 0.6],
-    ["ShentonWay", 1.0]
+    ["ShentonWay", 0.8]
   ],
   ShentonWay: [
-    ["Maxwell", 1.0],
+    ["Maxwell", 0.8],
     ["MarinaBay", 0.7]
   ],
   GardensByTheBay: [
     ["MarinaBay", 1.7],
-    ["TanjongRhu", 1],
+    ["TanjongRhu", 2.8],
   ],
   TanjongRhu: [
-    ["GardensByTheBay", 1],
-    ["KatongPark", 1.2]
+    ["GardensByTheBay", 2.8],
+    ["KatongPark", 1.5]
   ],
   KatongPark: [
-    ["TanjongRhu", 1.2],
-    ["TanjongKatong", 1.0],
+    ["TanjongRhu", 1.5],
+    ["TanjongKatong", 1.3],
   ],
   TanjongKatong: [
-    ["KatongPark", 1.0],
-    ["MarineParade", 1.4]
+    ["KatongPark", 1.3],
+    ["MarineParade", 1.0]
   ],
   MarineParade: [
-    ["TanjongKatong", 1.4],
+    ["TanjongKatong", 1.0],
     ["MarineTerrace", 1.2]
   ],
   MarineTerrace: [
     ["MarineParade", 1.2],
-    ["Siglap", 1.0]
+    ["Siglap", 1.6]
   ],
   Siglap: [
-    ["MarineTerrace", 1.0],
-    ["Bayshore", 1.2]
+    ["MarineTerrace", 1.6],
+    ["Bayshore", 1.4]
   ],
   Bayshore: [
-    ["Siglap", 1],
+    ["Siglap", 1.4],
     // ["BedokSouth", 1.4]
   ],
   // BedokSouth: [
@@ -394,63 +388,63 @@ export const graph: Record<string, [string, number][]> = {
 
 
 
-
   //CC line
   BrasBasah: [
     ["DhobyGhaut", 0.6],
-    ["Esplanade", 1.0]
+    ["Esplanade", 0.7]
   ],
   Esplanade: [
-    ["BrasBasah", 1.0],
-    ["Promenade", 1.0]
+    ["BrasBasah", 0.7],
+    ["Promenade", 0.8]
   ],
   Promenade: [
-    ["Esplanade", 1.0],
-    ["NicollHighway", 1.2],
-    ["Bayfront", 1.0]
+    ["Esplanade", 0.8],
+    ["NicollHighway", 0.8],
+    ["Bayfront", 1.3],
+    ["Bugis", 0.9]
   ],
   Bayfront: [
-    ["Promenade", 1.0],
+    ["Promenade", 1.3],
     ["MarinaBay", 0.8],
   ],
   NicollHighway: [
-    ["Promenade", 1.2],
-    ["Stadium", 1.0]
+    ["Promenade", 0.8],
+    ["Stadium", 1.5]
   ],
   Stadium: [
-    ["NicollHighway", 1.0],
+    ["NicollHighway", 1.5],
     ["Mountbatten", 1.4]
   ],
   Mountbatten: [
-    ["Stadium", 1.4],
-    ["Dakota", 1.0]
+    ["Stadium", 0.9],
+    ["Dakota", 0.7]
   ],
   Dakota: [
-    ["Mountbatten", 1.0],
-    ["PayaLebar", 1.0]
+    ["Mountbatten", 0.7],
+    ["PayaLebar", 1.2]
   ],
   MacPherson: [
     ["PayaLebar", 1.2],
     ["TaiSeng", 1.0],
-    ["Mattar", 1.0],
-    ["Ubi", 1.0]
+    ["Mattar", 0.8],
+    ["Ubi", 1.1]
   ],
   TaiSeng: [
     ["MacPherson", 1.0],
-    ["Bartley", 1.2]
+    ["Bartley", 1.3]
   ],
   Bartley: [
-    ["TaiSeng", 1.2],
-    ["Serangoon", 1.0]
+    ["TaiSeng", 1.3],
+    ["Serangoon", 1.3]
   ],
   Serangoon: [
-    ["Bartley", 1.0],
-    ["LorongChuan", 1.2],
-    ["Woodleigh", 1.0],
-    ["Kovan", 1.4]
+    ["Bartley", 1.3],
+    ["LorongChuan", 0.9],
+    ["Woodleigh", 1.2],
+    ["Kovan", 1.7]
   ],
   LorongChuan: [
-    ["Serangoon", 1.2],
+    ["Serangoon", 0.9 ],
     ["Bishan", 1.7]
   ],
   Marymount: [
@@ -459,12 +453,12 @@ export const graph: Record<string, [string, number][]> = {
   ],
   BotanicGardens: [
     ["Caldecott", 3.9],
-    ["FarrerRoad", 1],
-    ["TanKahKee", 1],
-    ["Stevens", 1.5]
+    ["FarrerRoad", 1.0],
+    ["TanKahKee", 1.1],
+    ["Stevens", 1.1]
   ],
   FarrerRoad: [
-    ["BotanicGardens", 1],
+    ["BotanicGardens", 1.0],
     ["HollandVillage", 1.4]
   ],
   HollandVillage: [
@@ -473,30 +467,30 @@ export const graph: Record<string, [string, number][]> = {
   ],
   OneNorth: [
     ["BuonaVista", 0.8],
-    ["KentRidge", 1.2]
+    ["KentRidge", 0.8]
   ],
   KentRidge: [
-    ["OneNorth", 1.2],
+    ["OneNorth", 0.8],
     ["HawParVilla", 1.4]
   ],
   HawParVilla: [
     ["KentRidge", 1.4],
-    ["PasirPanjang", 1.0]
+    ["PasirPanjang", 1.3]
   ],
   PasirPanjang: [
-    ["HawParVilla", 1.0],
-    ["LabradorPark", 1.2]
+    ["HawParVilla", 1.3],
+    ["LabradorPark", 1.4]
   ],
   LabradorPark: [
-    ["PasirPanjang", 1.2],
-    ["TelokBlangah", 1.0]
+    ["PasirPanjang", 1.4],
+    ["TelokBlangah", 0.8]
   ],
   TelokBlangah: [
-    ["LabradorPark", 1.0],
-    ["HarbourFront", 1.2]
+    ["LabradorPark", 0.8],
+    ["HarbourFront", 1.5]
   ],
   HarbourFront: [
-    ["TelokBlangah", 1.2],
+    ["TelokBlangah", 1.5],
     ["OutramPark", 2.6],
   ],
 
@@ -508,60 +502,59 @@ export const graph: Record<string, [string, number][]> = {
   //NE Line
   Chinatown: [
     ["OutramPark", 0.7],
-    ["ClarkeQuay", 0.8],
+    ["ClarkeQuay", 0.6],
     ["TelokAyer", 0.6],
-    ["FortCanning", 0.9]
+    ["FortCanning", 1.0]
   ],
   ClarkeQuay: [
-    ["Chinatown", 0.8],
+    ["Chinatown", 0.6],
     ["DhobyGhaut", 1.4]
   ],
   LittleIndia: [
     ["DhobyGhaut", 1.0],
-    ["FarrerPark", 1.0],
-    ["Newton", 1.0],
-    ["Rochor", 0.8]
+    ["FarrerPark", 0.8],
+    ["Newton", 1.4],
+    ["Rochor", 0.5]
   ],
   FarrerPark: [
-    ["LittleIndia", 1.0],
+    ["LittleIndia", 0.8],
     ["BoonKeng", 1.2]
   ],
   BoonKeng: [
     ["FarrerPark", 1.2],
-    ["PotongPasir", 1.4]
+    ["PotongPasir", 1.6]
   ],
   PotongPasir: [
-    ["BoonKeng", 1.4],
-    ["Woodleigh", 1.0]
+    ["BoonKeng", 1.6],
+    ["Woodleigh", 0.9]
   ],
   Woodleigh: [
-    ["PotongPasir", 1.0],
-    ["Serangoon", 1.0]
+    ["PotongPasir", 0.9],
+    ["Serangoon", 1.2]
   ],
   Kovan: [
-    ["Serangoon", 1.4],
-    ["Hougang", 1.2]
+    ["Serangoon", 1.7],
+    ["Hougang", 1.5]
   ],
   Hougang: [
-    ["Kovan", 1.2],
-    ["Buangkok", 1.4]
+    ["Kovan", 1.5],
+    ["Buangkok", 1.3]
   ],
   Buangkok: [
-    ["Hougang", 1.4],
-    ["Sengkang", 1.2]
+    ["Hougang", 1.3],
+    ["Sengkang", 1.1]
   ],
   Sengkang: [
-    ["Buangkok", 1.2],
-    ["Punggol", 1.4]
+    ["Buangkok", 1.1],
+    ["Punggol", 1.7]
   ],
   Punggol: [
-    ["Sengkang", 1.4],
-    ["PunggolCoast", 1.2]
+    ["Sengkang", 1.7],
+    ["PunggolCoast", 1.6]
   ],
   PunggolCoast: [
-    ["Punggol", 1.2]
+    ["Punggol", 1.6]
   ],
-
 
 
 
@@ -574,94 +567,94 @@ export const graph: Record<string, [string, number][]> = {
   ],
   Cashew: [
     ["BukitPanjang", 1.2],
-    ["Hillview", 1.4]
+    ["Hillview", 0.9]
   ],
   Hillview: [
-    ["Cashew", 1.4],
-    ["Hume", 1.2]
+    ["Cashew", 0.9],
+    ["Hume", 1.0]
   ],
   Hume: [
-    ["Hillview", 1.2],
-    ["BeautyWorld", 1.0]
+    ["Hillview", 1.0],
+    ["BeautyWorld", 1.7]
   ],
   BeautyWorld: [
-    ["Hume", 1.0],
+    ["Hume", 1.7],
     ["KingAlbertPark", 1.2]
   ],
   KingAlbertPark: [
     ["BeautyWorld", 1.2],
-    ["SixthAvenue", 1.0]
+    ["SixthAvenue", 1.6]
   ],
   SixthAvenue: [
-    ["KingAlbertPark", 1.0], 
-    ["TanKahKee", 1.2]
+    ["KingAlbertPark", 1.6], 
+    ["TanKahKee", 1.3]
   ],
   TanKahKee: [
-    ["SixthAvenue", 1.2],
-    ["BotanicGardens", 1.0]
+    ["SixthAvenue", 1.3],
+    ["BotanicGardens", 1.1]
   ],
   Rocher: [
-    ["LittleIndia", 1],
+    ["LittleIndia", 0.5],
     ["Bugis", 0.8]
   ],
   Downtown:[
-    ["Bayfront", 1],
-    ["TelokAyer", 1]
+    ["Bayfront", 0.9],
+    ["TelokAyer", 0.6]
   ],
   TelokAyer:[
-    ["Downtown", 1],
-    ["Chinatown", 1]
+    ["Downtown", 0.6],
+    ["Chinatown", 0.6]
   ],
   FortCanning: [
-    ["Chinatown", 1],
-    ["Bencoolen", 1],
+    ["Chinatown", 1.0],
+    ["Bencoolen", 1.0],
   ],
   Bencoolen: [
-    ["FortCanning", 1],
-    ["JalanBesar", 1]
+    ["FortCanning", 1.0],
+    ["JalanBesar", 0.9]
   ],
   JalanBesar: [
-    ["Bencoolen", 1],
-    ["Bendemeer", 1]
+    ["Bencoolen", 0.9],
+    ["Bendemeer", 1.3]
   ],
   Bendemeer: [
-    ["JalanBesar", 1],
-    ["GeylangBahru", 1]
+    ["JalanBesar", 1.3],
+    ["GeylangBahru", 1.4]
   ],
   GeylangBahru: [
-    ["Bendemeer", 1],
-    ["Mattar", 1]
+    ["Bendemeer", 1.4],
+    ["Mattar", 1.5]
   ],
   Mattar: [
-    ["GeylangBahru", 1],
-    ["MacPherson", 1]
+    ["GeylangBahru", 1.5],
+    ["MacPherson", 0.8]
   ],
   Ubi: [
-    ["MacPherson", 1],
-    ["KakiBukit", 1]
+    ["MacPherson", 1.1],
+    ["KakiBukit", 1.2]
   ],
   KakiBukit: [
-    ["Ubi", 1],
-    ["BedokNorth", 1.2]
+    ["Ubi", 1.2],
+    ["BedokNorth", 1.1]
   ],
   BedokNorth: [
-    ["KakiBukit", 1.2],
-    ["BedokReservoir", 1.4]
+    ["KakiBukit", 1.1],
+    ["BedokReservoir", 1.8]
   ],
   BedokReservoir: [
-    ["BedokNorth", 1.4],
-    ["TampinesWest", 1.2]
+    ["BedokNorth", 1.8],
+    ["TampinesWest", 1.7]
   ],
   TampinesWest: [
-    ["BedokReservoir", 1.2],
+    ["BedokReservoir", 1.7],
     ["Tampines", 1.3]
   ],
   TampinesEast: [
     ["Tampines", 1.4],
-    ["UpperChangi", 1.2]
+    ["UpperChangi", 2.6]
   ],
   UpperChangi: [
-    ["TampinesEast", 1.2],
+    ["TampinesEast", 2.6],
     ["Expo", 0.9]
   ],
   // Xilin: [
