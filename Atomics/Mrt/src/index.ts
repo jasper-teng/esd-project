@@ -33,7 +33,7 @@ app.get("/distance", (c) => {
 
 import { serve } from "@hono/node-server";
 
-const port = 3000;
+const port = 3004;
 serve({ fetch: app.fetch, port });
 console.log(`Server running on http://localhost:${port}`);
 

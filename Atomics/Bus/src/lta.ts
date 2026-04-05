@@ -18,7 +18,7 @@ export async function getBusRoutes(): Promise<BusRouteEntry[]> {
             headers: { AccountKey: LTA_API_KEY }
         });
         const text = await res.text();
-        console.log(text); // see what LTA is actually returning
+        // console.log(text); // see what LTA is actually returning
         const data = JSON.parse(text);
         // const data = await res.json();
         const batch = data.value;

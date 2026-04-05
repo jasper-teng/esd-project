@@ -12,6 +12,24 @@ services:
     networks:
       - esd-network
 
+  bus_ms:
+    build:
+      context: ./Atomics/Bus
+      dockerfile: Bus.Dockerfile
+    ports:
+      - '3003:3003'
+    networks:
+      - esd-network
+
+  mrt_ms:
+    build:
+      context: ./Atomics/Mrt
+      dockerfile: Mrt.Dockerfile
+    ports:
+      - '3004:3004'
+    networks:
+      - esd-network
+
   wallet_ms:
     build: 
       context: ./Atomics/Wallet

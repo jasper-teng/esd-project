@@ -27,6 +27,6 @@ app.get("/bus-distance", async (c) => {
     });
 });
 
-const port = 3000;
+const port = 3003;
 serve({ fetch: app.fetch, port });
 console.log(`Bus MS running on http://localhost:${port}`);
