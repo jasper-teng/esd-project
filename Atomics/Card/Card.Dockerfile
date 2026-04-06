@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-RUN npm ci
+RUN npm ci --include=dev
 
 COPY . .
 
@@ -32,4 +32,4 @@ RUN npm run build
 # ENV NODE_ENV=production
 EXPOSE 3001
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx drizzle-kit push && node dist/index.js"]

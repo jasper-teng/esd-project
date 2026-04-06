@@ -10,4 +10,4 @@ RUN npm run build
 
 EXPOSE 3006
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx drizzle-kit push && node dist/index.js"]

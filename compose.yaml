@@ -1,6 +1,6 @@
 services:
   card_ms:
-    build: 
+    build:
       context: ./Atomics/Card
       dockerfile: Card.Dockerfile
     ports:
@@ -8,7 +8,8 @@ services:
     env_file:
       - .env.docker
     depends_on:
-      - carddb
+      carddb:
+        condition: service_healthy
     networks:
       - esd-network
 
@@ -17,7 +18,7 @@ services:
       context: ./Legacy/Bus
       dockerfile: Bus.Dockerfile
     ports:
-      - '3003:3003'
+      - '3013:3003'
     networks:
       - esd-network
 
@@ -26,7 +27,7 @@ services:
       context: ./Legacy/Mrt
       dockerfile: Mrt.Dockerfile
     ports:
-      - '3004:3004'
+      - '3014:3004'
     networks:
       - esd-network
 
@@ -74,15 +75,16 @@ services:
 
 
   wallet_ms:
-    build: 
+    build:
       context: ./Atomics/Wallet
       dockerfile: Wallet.Dockerfile
     ports:
-      - '3002:3002'
+      - '3012:3002'
     env_file:
       - .env.docker
     depends_on:
-      - walletdb
+      walletdb:
+        condition: service_healthy
     networks:
       - esd-network
   
@@ -96,9 +98,14 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - esd-network
-  
+
   walletdb:
     image: postgres:16
     ports:
@@ -109,6 +116,11 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - esd-network
 
@@ -215,11 +227,12 @@ services:
       context: ./Atomics/Trip Service
       dockerfile: Trip.Dockerfile
     ports:
-      - '3005:3005'
+      - '3015:3005'
     env_file:
       - .env.docker
     depends_on:
-      - tripdb
+      tripdb:
+        condition: service_healthy
     networks:
       - esd-network
 
@@ -232,7 +245,8 @@ services:
     env_file:
       - .env.docker
     depends_on:
-      - userdb
+      userdb:
+        condition: service_healthy
     networks:
       - esd-network
 
@@ -268,6 +282,11 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - esd-network
 
@@ -281,6 +300,11 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - esd-network
 
