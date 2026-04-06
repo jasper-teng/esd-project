@@ -107,8 +107,8 @@ async function handleLookup(id) {
   error.value   = ''
   try {
     const [cardRes, walletRes] = await Promise.all([
-      fetch('http://localhost:3001/getCard'),
-      fetch('http://localhost:3002/test')
+      fetch('http://localhost:8000/getCard'),
+      fetch('http://localhost:8000/test')
     ])
     const cards = await cardRes.json()
     const wallets = await walletRes.json()

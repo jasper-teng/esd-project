@@ -86,8 +86,8 @@ async function loadCards() {
   loading.value = true
   try {
     const [interimRes, cardRes] = await Promise.all([
-      fetch('http://localhost:3006/user/interim-cards'),
-      fetch('http://localhost:3001/getCard'),
+      fetch('http://localhost:8000/user/interim-cards'),
+      fetch('http://localhost:8000/getCard'),
     ])
     const interimData = await interimRes.json()
     const cardData = await cardRes.json()
@@ -109,7 +109,7 @@ async function loadCards() {
 async function markShipped(cardId, concessionType) {
   shipping.value = cardId
   try {
-    const res  = await fetch('http://localhost:4006/interim-refund', {
+    const res  = await fetch('http://localhost:8000/interim-refund', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ card_id: String(cardId), concession_type: concessionType })
@@ -118,7 +118,7 @@ async function markShipped(cardId, concessionType) {
 
     if (data.status === 'success') {
       // Clear interim_start_date so card no longer appears as pending
-      await fetch(`http://localhost:3006/user/card/${cardId}`, {
+      await fetch(`http://localhost:8000/user/card/${cardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clear_interim: true })

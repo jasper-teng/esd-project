@@ -306,7 +306,7 @@
 import { loadStripe } from '@stripe/stripe-js'
 
 const config  = useRuntimeConfig()
-const GATEWAY = 'http://localhost:3010'
+const GATEWAY = 'http://localhost:8000'
 
 const mockUsers = [
   { id: 'user_1', name: 'Alice Tan' },
@@ -327,8 +327,8 @@ async function fetchTravelCards() {
   loadingCards.value = true
   try {
     const [cardRes, walletRes] = await Promise.all([
-      fetch('http://localhost:3001/getCard'),
-      fetch('http://localhost:3002/test')
+      fetch('http://localhost:8000/getCard'),
+      fetch('http://localhost:8000/test')
     ])
     const cards   = await cardRes.json()
     const wallets = await walletRes.json()

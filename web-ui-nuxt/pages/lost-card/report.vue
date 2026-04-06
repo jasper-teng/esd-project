@@ -240,7 +240,7 @@ async function handleReport() {
   loading.value = true; submitted.value = false; result.value = null; error.value = ''
 
   try {
-    const res = await fetch('http://localhost:4007/manage-lost-card', {
+    const res = await fetch('http://localhost:8000/manage-lost-card', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

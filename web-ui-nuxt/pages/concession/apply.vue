@@ -230,7 +230,7 @@ function handleFileChange(e) { const file = e.target.files[0]; if (file) form.va
 async function handleVerify() {
   verifying.value = true; verifyError.value = ''
   try {
-    const res = await fetch('http://localhost:3020/verify', {
+    const res = await fetch('http://localhost:8000/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -244,7 +244,7 @@ async function handleVerify() {
       verifiedAt.value = new Date().toLocaleTimeString('en-SG')
       // Fetch available cards for dropdown
       try {
-        const cardRes = await fetch('http://localhost:3001/getCard')
+        const cardRes = await fetch('http://localhost:8000/getCard')
         const cardData = await cardRes.json()
         availableCards.value = Array.isArray(cardData) ? cardData.filter(c => c.cardStatus === 'ACTIVE') : []
       } catch { availableCards.value = [] }
@@ -263,13 +263,13 @@ async function handleSubmit() {
 
   try {
     // Register Stripe customer before charging
-    await fetch('http://localhost:3010/setup-intent', {
+    await fetch('http://localhost:8000/setup-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: verify.value.idNumber.trim().toUpperCase() })
     })
 
-    const res = await fetch('http://localhost:4005/apply-concession', {
+    const res = await fetch('http://localhost:8000/apply-concession', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
