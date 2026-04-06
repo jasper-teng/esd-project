@@ -164,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+/* import { ref, computed } from 'vue'
 import { useNotifications } from '~/composables/useNotifications'
 
 const { addNotification } = useNotifications()
@@ -217,7 +217,79 @@ async function handleReport() {
   submitted.value = true; loading.value = false
 }
 
-function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.value = false; result.value = null; error.value = '' }
+function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.value = false; result.value = null; error.value = '' } */
+import { ref, computed } from 'vue'
+import { useNotifications } from '~/composables/useNotifications'
+
+const { addNotification } = useNotifications()
+
+const mode      = ref('transfer')
+const form      = ref({ lostCardId: '', destCardId: '' })
+const loading   = ref(false)
+const submitted = ref(false)
+const result    = ref(null)
+const error     = ref('')
+
+const canSubmit = computed(() => {
+  if (!form.value.lostCardId.trim()) return false
+  if (mode.value === 'transfer') return form.value.destCardId.trim() && form.value.lostCardId.trim() !== form.value.destCardId.trim()
+  return true
+})
+
+async function handleReport() {
+  loading.value = true; submitted.value = false; result.value = null; error.value = ''
+
+  try {
+    const res = await fetch('http://localhost:4007/manage-lost-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        card_id: form.value.lostCardId.trim(),
+        destinationCardID: mode.value === 'transfer' ? form.value.destCardId.trim() : null,
+      })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      error.value = data.reason ?? 'Something went wrong.'
+      submitted.value = true
+      loading.value = false
+      return
+    }
+
+    addNotification('Lost card blocked', mode.value === 'transfer'
+      ? `Card ${form.value.lostCardId} blocked. $${data.amountTransferred?.toFixed(2)} transferred to ${form.value.destCardId}.`
+      : `Card ${form.value.lostCardId} has been permanently blocked.`
+    )
+
+    result.value = {
+      transferredAmount: data.amountTransferred?.toFixed(2) ?? '0.00',
+      maxFareDeducted: data.maxFareDeducted ?? null,
+      details: {
+        'Lost card blocked': form.value.lostCardId,
+        ...(mode.value === 'transfer' ? {
+          'Balance transferred': `$${data.amountTransferred?.toFixed(2) ?? '0.00'}`,
+          'Transferred to': form.value.destCardId,
+        } : {}),
+        'Processed at': new Date().toLocaleTimeString('en-SG'),
+      }
+    }
+
+  } catch (err) {
+    error.value = 'Could not reach the Manage Lost Card service. Is it running?'
+  }
+
+  submitted.value = true
+  loading.value = false
+}
+
+function reset() {
+  form.value = { lostCardId: '', destCardId: '' }
+  submitted.value = false
+  result.value = null
+  error.value = ''
+}
 </script>
 
 <style scoped>
