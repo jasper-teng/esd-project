@@ -267,6 +267,23 @@ services:
     networks:
       - esd-network
 
+  process_interim_refund_composite:
+    build:
+      context: ./CompositeServices/ProcessInterimRefund
+      dockerfile: ProcessInterimRefund.Dockerfile
+    ports:
+      - '4006:4006'
+    env_file:
+      - .env.docker
+    depends_on:
+      - user_ms
+      - trip_ms
+      - fare_ms
+      - wallet_ms
+      - rabbitmq
+    networks:
+      - esd-network
+
   notification_ms:
     build:
       context: ./Atomics/Notification

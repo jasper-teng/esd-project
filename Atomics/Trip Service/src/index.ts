@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, gte, lte } from 'drizzle-orm'
 import { trip } from './db/schema.js'
 
 const db = drizzle(process.env.TRIP_DATABASE_URL!);
@@ -99,7 +99,6 @@ app.get('/trip/continuity/:card_id', async (c) => {
   const diffMinutes = (currentTapIn.getTime() - lastTapOut.getTime()) / 60000;
 
   // Transfer time limits per fare rules
-  const isBusToTrain = lastTrip.transport_type !== 'train' && transport_type === 'train';
   const isTrainToTrain = lastTrip.transport_type === 'train' && transport_type === 'train';
   const maxTransferMinutes = isTrainToTrain ? 15 : 45;
 
@@ -114,6 +113,28 @@ app.get('/trip/continuity/:card_id', async (c) => {
       previous_trip_id: is_continuation ? lastTrip.trip_id : null,
     }
   });
+});
+
+// GET /trip/interim/:card_id — get completed trips during interim period (Scenario 2 Phase 3)
+app.get('/trip/interim/:card_id', async (c) => {
+  const card_id = c.req.param('card_id');
+  const from = c.req.query('from'); // ISO date string — interim_start_date
+  const to   = c.req.query('to');   // ISO date string — now (card shipped date)
+
+  if (!from) {
+    return c.json({ code: 400, message: 'from (interim_start_date) is required' }, 400);
+  }
+
+  const result = await db.select().from(trip).where(
+    and(
+      eq(trip.card_id, card_id),
+      eq(trip.status, 'completed'),
+      gte(trip.tap_in_time, new Date(from)),
+      ...(to ? [lte(trip.tap_in_time, new Date(to))] : [])
+    )
+  );
+
+  return c.json({ code: 200, data: result });
 });
 
 // PUT /trip/:trip_id — update trip on tap-out or settlement
