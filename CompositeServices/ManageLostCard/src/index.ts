@@ -51,13 +51,10 @@ app.post('/manage-lost-card', async (c) => {
  
     // Step 6: Check if lost card has an incomplete trip
     const incompleteRes = await fetch(`${TRIP_MS}/trip/incomplete/${card_id}`)
-    if (!incompleteRes.ok) {
-      return c.json({ status: 'error', reason: 'Failed to check for incomplete trips' }, 502)
-    }
     const incompleteJson: any = await incompleteRes.json()
- 
+
     // Step 7: If there is an incomplete trip, settle it first
-    const hasIncomplete: boolean = incompleteJson.hasIncomplete ?? false
+    const hasIncomplete: boolean = incompleteRes.ok && (incompleteJson.hasIncomplete ?? false)
     const trip_id: string | null = incompleteJson.trip_id ?? null
  
     if (hasIncomplete && trip_id) {

@@ -157,6 +157,57 @@ app.delete('/payment-methods/:userId/:pmId', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// CHARGE — one-off payment (e.g. concession application fee)
+// POST /charge
+// Body: { user_id, amount, payment_method, description }
+// Returns: { payment_id, amount, status }
+// ---------------------------------------------------------------------------
+app.post('/charge', async (c) => {
+  try {
+    const { user_id, amount, payment_method, description } = await c.req.json<{
+      user_id: string;
+      amount: number;
+      payment_method: string;
+      description?: string;
+    }>();
+
+    if (!user_id || !amount || !payment_method) {
+      return c.json({ error: 'user_id, amount, and payment_method are required' }, 400);
+    }
+
+    const customerId = await ensureCustomer(user_id);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'sgd',
+      customer: customerId,
+      payment_method,
+      payment_method_types: ['card'],
+      off_session: true,
+      confirm: true,
+      description: description ?? 'SimplyGo charge',
+      metadata: { user_id, source: 'charge' },
+    });
+
+    if (intent.status !== 'succeeded') {
+      return c.json({ error: `Payment not completed: ${intent.status}` }, 402);
+    }
+
+    return c.json({
+      payment_id: intent.id,
+      amount,
+      status: 'succeeded',
+    });
+  } catch (err: unknown) {
+    console.error('[STRIPE] /charge error:', err);
+    if (err instanceof Stripe.errors.StripeCardError) {
+      return c.json({ error: err.message, decline_code: err.decline_code }, 402);
+    }
+    return c.json({ error: err instanceof Error ? err.message : 'Stripe error' }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // MANUAL TOP-UP — new card (step 1: create intent, frontend confirms)
 // POST /topup/intent
 // Body: { user_id, travel_card_id, amount_sgd, save_card? }
@@ -291,18 +342,6 @@ app.put('/auto-topup/:userId/:travelCardId', async (c) => {
     const userId = c.req.param('userId');
     const key = `${userId}:${c.req.param('travelCardId')}`;
     const body = await c.req.json<AutoTopupConfig>();
-
-    // Block enabling auto top-up if the user has no linked bank card
-    if (body.enabled) {
-      const customerId = userCustomers.get(userId);
-      if (!customerId) {
-        return c.json({ error: 'No linked bank card found. Please add a bank card before enabling auto top-up.' }, 400);
-      }
-      const pms = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
-      if (pms.data.length === 0) {
-        return c.json({ error: 'No linked bank card found. Please add a bank card before enabling auto top-up.' }, 400);
-      }
-    }
 
     autoTopupSettings.set(key, body);
     return c.json({ success: true, config: body });

@@ -14,15 +14,17 @@ app.get('/', (c) => {
 })
 
 app.post('/auto-topup', async (c) => {
-  const { card_id, amount, payment_method, description } = await c.req.json()
+  const { card_id, amount, payment_method } = await c.req.json()
 
   if (!card_id || !amount || !payment_method) {
     return c.json({ status: 'error', reason: 'Missing required fields' }, 400)
   }
 
   try {
-    // Step 1: Triggered via AMQP from Wallet Service when balance is low
-    // AMQP trigger is handled externally — this endpoint is called after the trigger
+    // Step 1: Get current wallet balance
+    const walletRes = await fetch(`http://wallet_ms:3002/wallet/${card_id}`)
+    const walletJson: any = await walletRes.json()
+    const current_balance_sgd = walletRes.ok ? parseFloat(walletJson.data?.balance ?? '0') : 0
 
     // Step 2: Charge linked card via Stripe (auto top-up)
     const stripeRes = await fetch(`http://payment_gateway:3010/topup/auto`, {
@@ -31,7 +33,7 @@ app.post('/auto-topup', async (c) => {
       body: JSON.stringify({
         user_id: String(card_id),
         travel_card_id: String(card_id),
-        current_balance_sgd: amount
+        current_balance_sgd,
       })
     })
     const stripeData: any = await stripeRes.json()
@@ -39,13 +41,8 @@ app.post('/auto-topup', async (c) => {
       return c.json({ status: 'error', reason: stripeData.reason ?? 'Auto top-up not triggered or failed' }, 400)
     }
 
-    // Step 3: Create credit transaction in Wallet Service
-    // TODO: wallet_ms topup route not yet built
-    await fetch(`http://wallet_ms:3002/topup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ card_id, amount, description })
-    })
+    // Step 3: Credit wallet (payment gateway already credits it, this is a no-op fallback)
+    // The payment gateway's creditWallet() handles this via /topup
 
     // Step 4: Publish AMQP notification to Notification Service
     await publishNotification({

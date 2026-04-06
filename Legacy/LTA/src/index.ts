@@ -9,23 +9,31 @@ const BUS_SERVICE_URL = process.env.BUS_SERVICE_URL || "http://bus_ms:3003";
 const MRT_SERVICE_URL = process.env.MRT_SERVICE_URL || "http://mrt_ms:3004";
 const port = process.env.LTA_PORT ? Number(process.env.LTA_PORT) : 3007;
 
+// Normalise station name: "NS1 Jurong East" → "JurongEast"
+function normaliseStation(raw: string): string {
+  return raw.replace(/^[A-Z]+\d+\s*/, '').replace(/\s+/g, '');
+}
+
 // GET /distance?from=xxx&to=yyy&transport_type=bus|train
 app.get("/distance", async (c) => {
-  const from = c.req.query("from");
-  const to = c.req.query("to");
+  const rawFrom = c.req.query("from");
+  const rawTo   = c.req.query("to");
   const transport_type = c.req.query("transport_type");
 
-  if (!from || !to || !transport_type) {
+  if (!rawFrom || !rawTo || !transport_type) {
     return c.json({ code: 400, message: "from, to, and transport_type are required" }, 400);
   }
+
+  const from = normaliseStation(rawFrom);
+  const to   = normaliseStation(rawTo);
 
   try {
     let url: string;
 
     if (transport_type === "bus") {
-      url = `${BUS_SERVICE_URL}/bus-distance?from=${from}&to=${to}`;
+      url = `${BUS_SERVICE_URL}/bus-distance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     } else if (transport_type === "train") {
-      url = `${MRT_SERVICE_URL}/mrt-distance?from=${from}&to=${to}`;
+      url = `${MRT_SERVICE_URL}/distance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     } else {
       return c.json({ code: 400, message: "transport_type must be 'bus' or 'train'" }, 400);
     }
@@ -43,7 +51,7 @@ app.get("/distance", async (c) => {
         from,
         to,
         transport_type,
-        distance_km: data.distanceKm,
+        distance_km: parseFloat(data.distanceKm),
       }
     });
 

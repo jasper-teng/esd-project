@@ -93,7 +93,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - ~/apps/card:/var/lib/postgresql/data
+      - carddb_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -111,7 +111,7 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - ~/apps/wallet:/var/lib/postgresql/data
+      - walletdb_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -159,7 +159,7 @@ services:
   manage_lost_card_composite:
     build:
       context: ./CompositeServices/ManageLostCard
-      dockerfile: ManageLostCard.Dockerfile
+      dockerfile: ManagelostCard.Dockerfile
     ports:
       - '4007:4007'
     env_file:
@@ -277,7 +277,7 @@ services:
     ports:
       - '5434:5432'
     volumes:
-      - ~/apps/trip:/var/lib/postgresql/data
+      - tripdb_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -295,7 +295,7 @@ services:
     ports:
       - '5435:5432'
     volumes:
-      - ~/apps/user:/var/lib/postgresql/data
+      - userdb_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
@@ -349,3 +349,9 @@ services:
 networks:
   esd-network:
     driver: bridge
+
+volumes:
+  carddb_data:
+  walletdb_data:
+  tripdb_data:
+  userdb_data:

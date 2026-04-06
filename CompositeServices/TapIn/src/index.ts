@@ -36,8 +36,8 @@ app.post('/tap-in', async (c) => {
       return c.json({ status: 'denied', reason: 'Card not found' }, 404)
     }
 
-    if (cardData.status === 'blocked' || cardData.status === 'expired') {
-      return c.json({ status: 'denied', reason: `Card is ${cardData.status}` }, 403)
+    if (cardData.cardStatus === 'LOST' || cardData.cardStatus === 'BLOCKED' || cardData.cardStatus === 'EXPIRED') {
+      return c.json({ status: 'denied', reason: `Card is ${cardData.cardStatus}` }, 403)
     }
 
     // Step 2: Check for incomplete trip

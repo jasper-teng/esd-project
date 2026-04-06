@@ -98,7 +98,7 @@ async function processInterimRefund(card_id: string, concession_type: string): P
 
     return {
       trip_id:                        String(t.trip_id),
-      distance_km:                    t.cumulative_distance_km ?? 0,
+      distance_km:                    parseFloat(t.cumulative_distance_km ?? '0'),
       original_concession_type:       'adult',
       new_concession_type:            concession_type,
       service_type:                   'basic',
