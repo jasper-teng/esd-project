@@ -128,10 +128,6 @@
           <div v-if="result.autoTopUp" class="sub-alert">
             <strong>Auto Top-Up triggered</strong> — Balance was below $5.00. <strong>${{ result.autoTopUp }}</strong> credited via your linked bank account.
           </div>
-          <div v-if="result.type === 'success'" class="notify-note">
-            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            Notification sent to your registered email.
-          </div>
 
           <button class="btn btn--primary btn--full" style="margin-top:4px" @click="result = null">Done</button>
         </div>
@@ -183,9 +179,9 @@ async function handleTapIn() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         card_id: parseInt(form.value.cardId.trim()) || form.value.cardId.trim(),
-        station: form.value.station,
-        transport_type: 'MRT',
-        tap_time: new Date().toISOString()
+        origin: form.value.station,
+        transport_type: 'train',
+        tap_in_time: new Date().toISOString()
       })
     })
     const data = await res.json()
@@ -223,9 +219,9 @@ async function handleTapOut() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         card_id: parseInt(form.value.cardId.trim()) || form.value.cardId.trim(),
-        station: form.value.station,
-        transport_type: 'MRT',
-        tap_time: new Date().toISOString()
+        destination: form.value.station,
+        transport_type: 'train',
+        tap_out_time: new Date().toISOString()
       })
     })
     const data = await res.json()

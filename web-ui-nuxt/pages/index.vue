@@ -42,6 +42,10 @@
       </NuxtLink>
     </div>
 
+    <div class="admin-link">
+      <NuxtLink to="/admin" class="admin-btn">Admin Panel</NuxtLink>
+    </div>
+
     <!-- Card lookup -->
     <div class="lookup-card">
       <div class="section-title">Check your card details</div>
@@ -230,4 +234,7 @@ async function handleLookup(id) {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s, transform 0.25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(6px); }
+.admin-link { text-align: right; margin-bottom: 16px; }
+.admin-btn { font-size: 13px; color: #6b7280; text-decoration: none; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 14px; }
+.admin-btn:hover { background: #f9fafb; }
 </style>

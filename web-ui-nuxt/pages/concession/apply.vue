@@ -46,40 +46,6 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Date of Birth</label>
-        <div class="datepicker-wrap" ref="dobPickerRef">
-          <div class="datepicker-input" :class="{ open: dobOpen, filled: verify.dob }" @click="toggleDob">
-            <svg viewBox="0 0 24 24" class="cal-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span :class="verify.dob ? 'dp-value' : 'dp-placeholder'">{{ verify.dob ? formatDisplayDate(verify.dob) : 'dd / mm / yyyy' }}</span>
-            <svg viewBox="0 0 24 24" class="chevron" :class="{ rotated: dobOpen }"><polyline points="6,9 12,15 18,9"/></svg>
-          </div>
-          <div v-if="dobOpen" class="dp-popup" :class="{ 'dp-popup--up': popupOpensUp }">
-            <div class="dp-header">
-              <button class="dp-nav" @click.stop="prevMonth"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></button>
-              <div class="dp-header-center">
-                <div class="dp-month-select" ref="monthSelectRef">
-                  <span class="dp-month-label" @click.stop="monthDropOpen = !monthDropOpen">{{ monthNames[dpMonth] }}<svg viewBox="0 0 24 24" class="chevron-sm" :class="{ rotated: monthDropOpen }"><polyline points="6,9 12,15 18,9"/></svg></span>
-                  <div v-if="monthDropOpen" class="dp-month-dropdown">
-                    <div v-for="(m, i) in monthNames" :key="i" class="dp-month-option" :class="{ active: i === dpMonth }" @click.stop="dpMonth = i; monthDropOpen = false">{{ m }}</div>
-                  </div>
-                </div>
-                <div class="dp-year-select" ref="yearSelectRef">
-                  <span class="dp-year-label" @click.stop="yearDropOpen = !yearDropOpen">{{ dpYear }}<svg viewBox="0 0 24 24" class="chevron-sm" :class="{ rotated: yearDropOpen }"><polyline points="6,9 12,15 18,9"/></svg></span>
-                  <div v-if="yearDropOpen" class="dp-year-dropdown">
-                    <div v-for="y in yearRange" :key="y" class="dp-year-option" :class="{ active: y === dpYear }" @click.stop="dpYear = y; yearDropOpen = false">{{ y }}</div>
-                  </div>
-                </div>
-              </div>
-              <button class="dp-nav" @click.stop="nextMonth"><svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg></button>
-            </div>
-            <div class="dp-weekdays"><span v-for="d in ['Su','Mo','Tu','We','Th','Fr','Sa']" :key="d">{{ d }}</span></div>
-            <div class="dp-days">
-              <span v-for="(day, i) in calendarDays" :key="i" class="dp-day" :class="{ 'dp-day--empty': !day, 'dp-day--today': day && isToday(day), 'dp-day--selected': day && isSelected(day), 'dp-day--future': day && isFuture(day) }" @click.stop="day && !isFuture(day) && selectDay(day)">{{ day || '' }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <transition name="fade">
         <div v-if="verifyError" class="alert alert--error">
@@ -103,8 +69,13 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Card ID</label>
-          <input v-model="form.cardId" type="number" placeholder="e.g. 3" />
+          <label>Existing Card <span style="font-weight:400;color:#888">(optional)</span></label>
+          <select v-model="form.cardId" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff">
+            <option value="">— None / First-time applicant —</option>
+            <option v-for="c in availableCards" :key="c.id" :value="String(c.id)">
+              Card #{{ c.id }} — {{ c.holder_name ?? 'Unknown' }} ({{ c.concession_type }})
+            </option>
+          </select>
         </div>
         <div class="form-group">
           <label>Contact Number</label>
@@ -126,7 +97,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Document Image <span class="label-hint">(Student pass / matric card)</span></label>
+        <label>Profile Photo <span class="label-hint">(Photo for your concession card)</span></label>
         <div class="file-upload" :class="{ 'has-file': form.document }" @click="triggerFileInput">
           <input ref="fileInputRef" type="file" accept="image/*,.pdf" @change="handleFileChange" style="display:none" />
           <svg v-if="!form.document" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -135,7 +106,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Payment Method <span class="label-hint">(one-time fee: $2.00)</span></label>
+        <label>Payment Method <span class="label-hint">(one-time fee: $10.10)</span></label>
         <div class="payment-options">
           <div v-for="p in paymentMethods" :key="p.value" class="payment-option" :class="{ selected: form.paymentMethod === p.value }" @click="form.paymentMethod = p.value">
             <svg viewBox="0 0 24 24" v-html="p.icon"></svg>
@@ -152,7 +123,7 @@
       <div class="form-actions">
         <button class="btn btn--ghost" @click="phase = 1">Back</button>
         <button class="btn btn--primary" :disabled="!canSubmit || submitting" @click="handleSubmit">
-          {{ submitting ? 'Processing payment...' : 'Submit & Pay $2.00' }}
+          {{ submitting ? 'Processing payment...' : 'Submit & Pay $10.10' }}
         </button>
       </div>
     </div>
@@ -173,7 +144,7 @@
           </div>
           <div class="tl-item tl-item--done">
             <div class="tl-dot tl-dot--done"><svg viewBox="0 0 10 10"><polyline points="2,5 4,7 8,3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
-            <div><div class="tl-label">Application submitted & payment processed ($2.00)</div><div class="tl-time">{{ submittedAt }}</div></div>
+            <div><div class="tl-label">Application submitted & payment processed ($10.10)</div><div class="tl-time">{{ submittedAt }}</div></div>
           </div>
           <div class="tl-item" :class="processingDone ? 'tl-item--done' : 'tl-item--active'">
             <div class="tl-dot" :class="processingDone ? 'tl-dot--done' : 'tl-dot--active'">
@@ -187,7 +158,7 @@
             <div class="result-icon result-icon--success"><svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg></div>
             <div class="result-body">
               <div class="result-title">Concession card created</div>
-              <div class="result-msg">Your student concession has been activated on card <strong>{{ form.cardId }}</strong>. Fare discount of 70% will apply on all future trips.</div>
+              <div class="result-msg">Your student concession card is being processed. <span v-if="form.cardId">Trips made on card <strong>#{{ form.cardId }}</strong> during the application period will be eligible for an interim fare refund once your new card is shipped.</span><span v-else>Student concession fares will apply on all future trips.</span></div>
             </div>
           </div>
         </transition>
@@ -196,7 +167,7 @@
             <div class="result-icon result-icon--error"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
             <div class="result-body">
               <div class="result-title">Application failed</div>
-              <div class="result-msg">Payment was processed but concession creation failed. A refund of $2.00 will be issued within 3-5 business days.</div>
+              <div class="result-msg">Payment was processed but concession creation failed. A refund of $10.10 will be issued within 3-5 business days.</div>
             </div>
           </div>
         </transition>
@@ -222,9 +193,7 @@ const schools = [
 ]
 
 const paymentMethods = [
-  { value: 'paynow',  label: 'PayNow',  icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="12" cy="15" r="1"/>' },
-  { value: 'visa',    label: 'Visa/MC', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="9" y2="15"/>' },
-  { value: 'grabpay', label: 'GrabPay', icon: '<circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>' },
+  { value: 'pm_card_visa', label: 'Visa/MC', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="9" y2="15"/>' },
 ]
 
 const phase       = ref(1)
@@ -240,56 +209,17 @@ const approved    = ref(true)
 
 const verify = ref({ idNumber: '', school: '', dob: '' })
 const form   = ref({ cardId: '', contact: '', email: '', postalCode: '', unitNumber: '', document: '', paymentMethod: '' })
+const availableCards = ref([])
 
 const schoolDropdownOpen = ref(false)
 const schoolDropdownRef  = ref(null)
 const fileInputRef       = ref(null)
 
-const dobOpen       = ref(false)
-const dobPickerRef  = ref(null)
-const monthDropOpen = ref(false)
-const yearDropOpen  = ref(false)
-const monthSelectRef = ref(null)
-const yearSelectRef  = ref(null)
-const popupOpensUp  = ref(false)
-
-const today   = new Date()
-const dpMonth = ref(today.getMonth())
-const dpYear  = ref(today.getFullYear())
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
-const yearRange = computed(() => {
-  const end = today.getFullYear(); const start = end - 100; const years = []
-  for (let y = end; y >= start; y--) years.push(y)
-  return years
-})
-const calendarDays = computed(() => {
-  const firstDay = new Date(dpYear.value, dpMonth.value, 1).getDay()
-  const daysInMonth = new Date(dpYear.value, dpMonth.value + 1, 0).getDate()
-  const cells = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-  return cells
-})
-function isToday(day) { return day === today.getDate() && dpMonth.value === today.getMonth() && dpYear.value === today.getFullYear() }
-function isSelected(day) { if (!verify.value.dob) return false; const [y,m,d] = verify.value.dob.split('-').map(Number); return day === d && dpMonth.value === m - 1 && dpYear.value === y }
-function isFuture(day) { return new Date(dpYear.value, dpMonth.value, day) > today }
-function selectDay(day) { const mm = String(dpMonth.value + 1).padStart(2, '0'); const dd = String(day).padStart(2, '0'); verify.value.dob = `${dpYear.value}-${mm}-${dd}`; dobOpen.value = false }
-function formatDisplayDate(iso) { if (!iso) return ''; const [y,m,d] = iso.split('-'); return `${d} / ${m} / ${y}` }
-function prevMonth() { if (dpMonth.value === 0) { dpMonth.value = 11; dpYear.value-- } else dpMonth.value-- }
-function nextMonth() { if (dpMonth.value === 11) { dpMonth.value = 0; dpYear.value++ } else dpMonth.value++ }
-async function toggleDob() {
-  if (dobOpen.value) { dobOpen.value = false; return }
-  if (dobPickerRef.value) { const rect = dobPickerRef.value.getBoundingClientRect(); popupOpensUp.value = window.innerHeight - rect.bottom < 340 }
-  dobOpen.value = true
-}
-
-const canVerify = computed(() => verify.value.idNumber.trim() && verify.value.school && verify.value.dob)
-const canSubmit = computed(() => form.value.cardId.trim() && form.value.contact.trim() && form.value.email.trim() && form.value.postalCode.trim() && form.value.unitNumber.trim() && form.value.document && form.value.paymentMethod)
+const canVerify = computed(() => verify.value.idNumber.trim() && verify.value.school)
+const canSubmit = computed(() => form.value.contact.trim() && form.value.email.trim() && form.value.postalCode.trim() && form.value.unitNumber.trim() && form.value.document && form.value.paymentMethod)
 
 function handleClickOutside(e) {
   if (schoolDropdownRef.value && !schoolDropdownRef.value.contains(e.target)) schoolDropdownOpen.value = false
-  if (dobPickerRef.value && !dobPickerRef.value.contains(e.target)) { dobOpen.value = false; monthDropOpen.value = false; yearDropOpen.value = false }
 }
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
@@ -312,6 +242,12 @@ async function handleVerify() {
     const data = await res.json()
     if (data.verified) {
       verifiedAt.value = new Date().toLocaleTimeString('en-SG')
+      // Fetch available cards for dropdown
+      try {
+        const cardRes = await fetch('http://localhost:3001/getCard')
+        const cardData = await cardRes.json()
+        availableCards.value = Array.isArray(cardData) ? cardData.filter(c => c.cardStatus === 'ACTIVE') : []
+      } catch { availableCards.value = [] }
       phase.value = 2
     } else {
       verifyError.value = data.reason ?? 'Student verification failed.'
@@ -324,8 +260,15 @@ async function handleVerify() {
 
 async function handleSubmit() {
   submitting.value = true; submitError.value = ''
-  
+
   try {
+    // Register Stripe customer before charging
+    await fetch('http://localhost:3010/setup-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: verify.value.idNumber.trim().toUpperCase() })
+    })
+
     const res = await fetch('http://localhost:4005/apply-concession', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -348,7 +291,7 @@ async function handleSubmit() {
       processingDone.value = true
       processedAt.value = new Date().toLocaleTimeString('en-SG')
       approved.value = true
-      addNotification('Concession approved ✓', `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`)
+      addNotification('Concession approved ✓', `Student concession activated on card ${form.value.cardId}. Concession fares now applied.`)
     } else {
       processingDone.value = true
       processedAt.value = new Date().toLocaleTimeString('en-SG')
