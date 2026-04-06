@@ -104,7 +104,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Card ID</label>
-          <input v-model="form.cardId" type="text" placeholder="e.g. EZ-1234567890" />
+          <input v-model="form.cardId" type="number" placeholder="e.g. 3" />
         </div>
         <div class="form-group">
           <label>Contact Number</label>
@@ -324,14 +324,41 @@ async function handleVerify() {
 
 async function handleSubmit() {
   submitting.value = true; submitError.value = ''
-  await new Promise(r => setTimeout(r, 1500))
-  submittedAt.value = new Date().toLocaleTimeString('en-SG')
-  phase.value = 3
-  setTimeout(() => {
-    processingDone.value = true; processedAt.value = new Date().toLocaleTimeString('en-SG'); approved.value = Math.random() > 0.1
-    if (approved.value) addNotification('Concession approved ✓', `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`)
-    else addNotification('Concession application failed', 'Payment was processed but concession creation failed. A refund of $2.00 will be issued.')
-  }, 2500)
+  
+  try {
+    const res = await fetch('http://localhost:4005/apply-concession', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: verify.value.idNumber.trim().toUpperCase(),
+        existing_card_id: Number(form.value.cardId),
+        email: form.value.email,
+        payment_method: form.value.paymentMethod,
+        contact_number: form.value.contact,
+        postal_code: form.value.postalCode,
+        unit_number: form.value.unitNumber,
+      })
+    })
+
+    const data = await res.json()
+    submittedAt.value = new Date().toLocaleTimeString('en-SG')
+    phase.value = 3
+
+    if (res.ok) {
+      processingDone.value = true
+      processedAt.value = new Date().toLocaleTimeString('en-SG')
+      approved.value = true
+      addNotification('Concession approved ✓', `Student concession activated on card ${form.value.cardId}. 70% fare discount now applied.`)
+    } else {
+      processingDone.value = true
+      processedAt.value = new Date().toLocaleTimeString('en-SG')
+      approved.value = false
+      addNotification('Concession application failed', data.message || 'An error occurred.')
+    }
+  } catch (err) {
+    submitError.value = 'Could not reach the concession service.'
+  }
+
   submitting.value = false
 }
 
