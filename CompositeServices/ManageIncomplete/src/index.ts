@@ -64,9 +64,10 @@ app.post('/manage-incomplete', async (c) => {
 
     // Publish AMQP notification to Notification Service
     await publishNotification({
-      type: 'incomplete_journey',
+      notification_type: 'incomplete_journey',
       card_id,
-      message: `Maximum fare of $${fareAmount.toFixed(2)} charged for incomplete journey.`,
+      subject: 'Incomplete Journey Charged',
+      body: `Maximum fare of SGD ${fareAmount.toFixed(2)} charged for incomplete journey.`,
     })
 
     return c.json({

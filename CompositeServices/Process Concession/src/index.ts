@@ -111,10 +111,11 @@ app.post('/apply-concession', async (c) => {
 
     // Step 4: Publish AMQP notification to Notification Service
     await publishNotification({
-      type: 'concession',
-      user_id,
-      email,
-      message: `Your concession card application was successful. New card ID: ${new_card_id}`,
+      notification_type: 'concession_approved',
+      card_id: String(new_card_id),
+      recipient_email: email,
+      subject: 'Concession Card Approved',
+      body: `Your student concession card has been approved. Card will be shipped soon.`,
     })
 
     return c.json({

@@ -49,9 +49,10 @@ app.post('/auto-topup', async (c) => {
 
     // Step 4: Publish AMQP notification to Notification Service
     await publishNotification({
-      type: 'auto_topup',
+      notification_type: 'auto_topup_success',
       card_id,
-      message: `Auto top-up of $${amount} was successful.`,
+      subject: 'Auto Top-Up Successful',
+      body: `Your card has been topped up by SGD ${Number(amount).toFixed(2)}.`,
     })
 
     return c.json({

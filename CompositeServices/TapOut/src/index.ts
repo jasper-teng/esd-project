@@ -142,9 +142,10 @@ app.post('/tap-out', async (c) => {
 
     // Step 8: Publish AMQP notification to Notification Service
     await publishNotification({
-      type: 'tap_out',
+      notification_type: 'tap_out_complete',
       card_id,
-      message: `Fare of $${fare_amount.toFixed(2)} deducted. Trip completed.`,
+      subject: 'Trip Completed',
+      body: `${tripData.origin} to ${destination}. Fare: SGD ${fare_amount.toFixed(2)}.`,
     })
 
     return c.json({

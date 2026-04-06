@@ -148,12 +148,10 @@ async function processInterimRefund(card_id: string, concession_type: string): P
 
   // ── Step 6: Publish AMQP notification ─────────────────────────────────────
   await publishNotification({
-    type:            'interim_refund',
+    notification_type: 'interim_refund_credited',
     card_id,
-    concession_type,
-    amount:          total_refund,
-    trip_count:      trips.length,
-    message:         `Interim fare refund of $${total_refund.toFixed(2)} credited for ${trips.length} trip(s).`,
+    subject:           'Interim Fare Refund',
+    body:              `Your concession card has shipped. SGD ${total_refund.toFixed(2)} credited to your new card for ${trips.length} interim trip(s).`,
   })
 
   return {
