@@ -50,6 +50,23 @@ app.get('/getCard/:id', async (c) => {
   return c.json({ code: 200, data: result[0] })
 })
 
+app.put('/updateCard/:id', async (c) => {
+  const id = c.req.param('id')
+  const { cardStatus } = await c.req.json()
+
+  const result = await db
+    .update(card)
+    .set({ cardStatus })
+    .where(eq(card.id, Number(id)))
+    .returning()
+
+  if (result.length === 0) {
+    return c.json({ code: 404, message: 'Card not found' }, 404)
+  }
+
+  return c.json({ code: 200, data: result[0] })
+})
+
 serve({
   fetch: app.fetch,
   port: portno,
