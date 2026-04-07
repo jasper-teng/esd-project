@@ -75,6 +75,10 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useNotifications } from '~/composables/useNotifications'
+
+const { addNotification } = useNotifications()
 const loading  = ref(false)
 const shipping = ref(null)
 const result   = ref(null)
@@ -123,6 +127,18 @@ async function markShipped(cardId, concessionType) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clear_interim: true })
       })
+
+      if (data.refund_amount > 0) {
+        addNotification(
+          'Interim Refund Credited',
+          `Card #${cardId} shipped. SGD ${data.refund_amount.toFixed(2)} refunded for ${data.trip_count} interim trip(s).`
+        )
+      } else {
+        addNotification(
+          'Concession Card Shipped',
+          `Card #${cardId} has been marked as shipped. No interim refund applicable.`
+        )
+      }
 
       result.value = {
         type: 'success',

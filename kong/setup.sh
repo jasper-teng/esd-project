@@ -39,7 +39,7 @@ add_service() {
 # --------------------------------------------------------------------------
 add_service "card-service"   "http://card_ms:3001"    '["/getCard", "/addCard", "/updateCard"]'
 add_service "wallet-service" "http://wallet_ms:3002"  '["/wallet", "/test", "/topup", "/deduct"]'
-add_service "user-service"   "http://user_ms:3006"    '["/user"]'
+add_service "user-service"   "http://user_ms:3006"    '["/user", "/auth"]'
 add_service "trip-service"   "http://trip_ms:3005"    '["/trip"]'
 add_service "fare-service"   "http://fare_ms:5004"    '["/fare"]'
 

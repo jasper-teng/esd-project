@@ -4,17 +4,17 @@ import { students } from "./schema.js";
 
 // School names MUST match exactly what apply.vue sends
 const seedData = [
-  { identification_number: "S1234567A", name: "Alice Tan",   school: "Singapore Management University (SMU)",              date_of_birth: "2002-03-15" },
-  { identification_number: "S9876543B", name: "Bob Lim",     school: "Nanyang Technological University (NTU)",             date_of_birth: "2001-07-22" },
-  { identification_number: "T1111111C", name: "Carol Ng",    school: "National University of Singapore (NUS)",             date_of_birth: "2003-01-10" },
-  { identification_number: "S2222222D", name: "David Koh",   school: "Singapore Polytechnic",                              date_of_birth: "2004-05-30" },
-  { identification_number: "S3333333E", name: "Emma Wong",   school: "Ngee Ann Polytechnic",                               date_of_birth: "2004-11-18" },
-  { identification_number: "T4444444F", name: "Frank Lee",   school: "Republic Polytechnic",                               date_of_birth: "2003-09-05" },
-  { identification_number: "S5555555G", name: "Grace Tan",   school: "Temasek Polytechnic",                                date_of_birth: "2004-02-14" },
-  { identification_number: "S6666666H", name: "Henry Goh",   school: "Singapore Institute of Technology (SIT)",            date_of_birth: "2002-08-25" },
-  { identification_number: "S7777777I", name: "Ivan Chua",   school: "Singapore University of Technology & Design (SUTD)", date_of_birth: "2003-04-20" },
-  { identification_number: "S8888888J", name: "Jane Ong",    school: "Singapore University of Social Sciences (SUSS)",     date_of_birth: "2004-07-11" },
-  { identification_number: "T9999999K", name: "Kevin Yap",   school: "Nanyang Polytechnic",                                date_of_birth: "2003-12-01" },
+  { identification_number: "S1234567A", school: "Singapore Management University (SMU)" },
+  { identification_number: "S9876543B", school: "Nanyang Technological University (NTU)" },
+  { identification_number: "T1111111C", school: "National University of Singapore (NUS)" },
+  { identification_number: "S2222222D", school: "Singapore Polytechnic" },
+  { identification_number: "S3333333E", school: "Ngee Ann Polytechnic" },
+  { identification_number: "T4444444F", school: "Republic Polytechnic" },
+  { identification_number: "S5555555G", school: "Temasek Polytechnic" },
+  { identification_number: "S6666666H", school: "Singapore Institute of Technology (SIT)" },
+  { identification_number: "S7777777I", school: "Singapore University of Technology & Design (SUTD)" },
+  { identification_number: "S8888888J", school: "Singapore University of Social Sciences (SUSS)" },
+  { identification_number: "T9999999K", school: "Nanyang Polytechnic" },
 ];
 
 async function seed() {

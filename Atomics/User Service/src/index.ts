@@ -3,7 +3,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { and, eq, isNotNull, ne } from 'drizzle-orm'
-import { userCard } from './db/schema.js'
+import bcrypt from 'bcryptjs'
+import { users, userCard } from './db/schema.js'
 
 const db = drizzle(process.env.USER_DATABASE_URL!);
 
@@ -17,7 +18,72 @@ app.get('/health', (c) => {
   return c.json({ status: 'healthy', service: 'user-service' });
 });
 
+// ---------------------------------------------------------------------------
+// POST /auth/register — create a new user account
+// ---------------------------------------------------------------------------
+app.post('/auth/register', async (c) => {
+  const { email, password, name } = await c.req.json();
+
+  if (!email || !password) {
+    return c.json({ code: 400, message: 'email and password are required' }, 400);
+  }
+
+  const existing = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+  if (existing.length > 0) {
+    return c.json({ code: 409, message: 'Email already registered' }, 409);
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  const [user] = await db.insert(users).values({
+    email: email.toLowerCase(),
+    password: hashed,
+    name: name ?? null,
+  }).returning();
+
+  return c.json({ code: 201, data: { id: user.id, email: user.email, name: user.name } }, 201);
+});
+
+// ---------------------------------------------------------------------------
+// POST /auth/login — authenticate user, return user info + linked cards
+// ---------------------------------------------------------------------------
+app.post('/auth/login', async (c) => {
+  const { email, password } = await c.req.json();
+
+  if (!email || !password) {
+    return c.json({ code: 400, message: 'email and password are required' }, 400);
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+
+  if (!user) {
+    return c.json({ code: 401, message: 'Invalid email or password' }, 401);
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    return c.json({ code: 401, message: 'Invalid email or password' }, 401);
+  }
+
+  // Get linked cards
+  const cards = await db.select().from(userCard).where(
+    and(eq(userCard.user_id, String(user.id)), eq(userCard.is_active, true))
+  );
+
+  return c.json({
+    code: 200,
+    data: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      cards: cards.map(c => c.card_id),
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // POST /user/card — link a user to a card
+// ---------------------------------------------------------------------------
 app.post('/user/card', async (c) => {
   const body = await c.req.json();
   const { user_id, card_id, interim_start_date, existing_card_id } = body;
@@ -65,15 +131,11 @@ app.get('/user/by-card/:card_id', async (c) => {
   return c.json({ code: 200, data: result[0] });
 });
 
-// GET /user/active-cards/:lost_card_id — get other active cards for the same user
-// Used in Scenario 3 (lost card) to find destination card for balance transfer
+// GET /user/active-cards/:lost_card_id
 app.get('/user/active-cards/:lost_card_id', async (c) => {
   const lost_card_id = c.req.param('lost_card_id');
 
-  // Find the user who owns the lost card
-  const owner = await db.select().from(userCard).where(
-    eq(userCard.card_id, lost_card_id)
-  );
+  const owner = await db.select().from(userCard).where(eq(userCard.card_id, lost_card_id));
 
   if (owner.length === 0) {
     return c.json({ code: 404, message: 'Card not linked to any user' }, 404);
@@ -81,13 +143,8 @@ app.get('/user/active-cards/:lost_card_id', async (c) => {
 
   const user_id = owner[0].user_id;
 
-  // Get all other active cards for this user
   const activeCards = await db.select().from(userCard).where(
-    and(
-      eq(userCard.user_id, user_id),
-      eq(userCard.is_active, true),
-      ne(userCard.card_id, lost_card_id)
-    )
+    and(eq(userCard.user_id, user_id), eq(userCard.is_active, true), ne(userCard.card_id, lost_card_id))
   );
 
   if (activeCards.length === 0) {
@@ -97,13 +154,13 @@ app.get('/user/active-cards/:lost_card_id', async (c) => {
   return c.json({ code: 200, data: activeCards });
 });
 
-// GET /user/interim-cards — get all user-card links with an active interim period
+// GET /user/interim-cards
 app.get('/user/interim-cards', async (c) => {
   const result = await db.select().from(userCard).where(isNotNull(userCard.interim_start_date));
   return c.json({ code: 200, data: result });
 });
 
-// PUT /user/card/:card_id — update card link (e.g. deactivate on loss, or clear interim)
+// PUT /user/card/:card_id
 app.put('/user/card/:card_id', async (c) => {
   const card_id = c.req.param('card_id');
   const body = await c.req.json();

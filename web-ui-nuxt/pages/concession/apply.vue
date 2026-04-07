@@ -69,13 +69,12 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Existing Card <span style="font-weight:400;color:#888">(optional)</span></label>
-          <select v-model="form.cardId" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff">
+          <label>Existing Card <span style="font-weight:400;color:#888">(optional — for interim fare refund)</span></label>
+          <select v-model="form.cardId" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;font-family:inherit">
             <option value="">— None / First-time applicant —</option>
-            <option v-for="c in availableCards" :key="c.id" :value="String(c.id)">
-              Card #{{ c.id }} — {{ c.holder_name ?? 'Unknown' }} ({{ c.concession_type }})
-            </option>
+            <option v-for="cid in userCards" :key="cid" :value="String(cid)">Card #{{ cid }}</option>
           </select>
+          <span v-if="userCards.length === 0" style="font-size:11px;color:#aaa">Log in and link a card to enable interim refund</span>
         </div>
         <div class="form-group">
           <label>Contact Number</label>
@@ -184,6 +183,18 @@ import { useNotifications } from '~/composables/useNotifications'
 
 const { addNotification } = useNotifications()
 
+// Logged-in user's linked cards
+const userCards = ref([])
+onMounted(() => {
+  try {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      const u = JSON.parse(stored)
+      userCards.value = u.cards ?? []
+    }
+  } catch {}
+})
+
 const schools = [
   'National University of Singapore (NUS)', 'Nanyang Technological University (NTU)',
   'Singapore Management University (SMU)', 'Singapore University of Technology & Design (SUTD)',
@@ -209,7 +220,6 @@ const approved    = ref(true)
 
 const verify = ref({ idNumber: '', school: '', dob: '' })
 const form   = ref({ cardId: '', contact: '', email: '', postalCode: '', unitNumber: '', document: '', paymentMethod: '' })
-const availableCards = ref([])
 
 const schoolDropdownOpen = ref(false)
 const schoolDropdownRef  = ref(null)
@@ -242,12 +252,6 @@ async function handleVerify() {
     const data = await res.json()
     if (data.verified) {
       verifiedAt.value = new Date().toLocaleTimeString('en-SG')
-      // Fetch available cards for dropdown
-      try {
-        const cardRes = await fetch('http://localhost:8000/getCard')
-        const cardData = await cardRes.json()
-        availableCards.value = Array.isArray(cardData) ? cardData.filter(c => c.cardStatus === 'ACTIVE') : []
-      } catch { availableCards.value = [] }
       phase.value = 2
     } else {
       verifyError.value = data.reason ?? 'Student verification failed.'

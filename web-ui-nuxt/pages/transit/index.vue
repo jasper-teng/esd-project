@@ -34,7 +34,10 @@
         <div class="form-card">
           <div class="form-group">
             <label>Card ID</label>
-            <input v-model="form.cardId" type="text" placeholder="e.g. 1" @input="result = null" />
+            <select v-if="userCards.length > 0" v-model="form.cardId" class="card-select" @change="result = null">
+              <option v-for="cid in userCards" :key="cid" :value="cid">Card #{{ cid }}</option>
+            </select>
+            <input v-else v-model="form.cardId" type="text" placeholder="e.g. 1" @input="result = null" />
           </div>
 
           <div class="form-group">
@@ -147,6 +150,18 @@ const dropdownRef  = ref(null)
 const form         = ref({ cardId: '', station: '' })
 const loading      = ref(false)
 const result       = ref(null)
+const userCards    = ref([])
+
+onMounted(() => {
+  try {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      const u = JSON.parse(stored)
+      userCards.value = u.cards ?? []
+      if (userCards.value.length > 0) form.value.cardId = userCards.value[0]
+    }
+  } catch {}
+})
 
 const lineColors = {
   NS: '#d42e12', EW: '#009645', CG: '#009645',
@@ -363,8 +378,8 @@ const stationGroups = [
 .form-card { background: white; border: 1px solid #e8e8f0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 0.82rem; font-weight: 600; color: #555; }
-.form-group input { border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
-.form-group input:focus { border-color: #4f4caf; }
+.form-group input, .card-select { border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; font-family: inherit; background: #fff; }
+.form-group input:focus, .card-select:focus { border-color: #4f4caf; }
 
 /* ── Buttons ── */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }

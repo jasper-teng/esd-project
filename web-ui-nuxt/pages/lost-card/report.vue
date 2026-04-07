@@ -47,7 +47,11 @@
           <span class="field-tag field-tag--red">Lost card</span>
           <label>Card ID</label>
         </div>
-        <input v-model="form.lostCardId" type="text" placeholder="e.g. EZ-1234567890" />
+        <select v-if="userCards.length > 0" v-model="form.lostCardId" class="card-select">
+          <option value="">— Select lost card —</option>
+          <option v-for="cid in userCards" :key="cid" :value="cid">Card #{{ cid }}</option>
+        </select>
+        <input v-else v-model="form.lostCardId" type="text" placeholder="e.g. 1" />
       </div>
 
       
@@ -63,7 +67,11 @@
               <span class="field-tag field-tag--purple">Receiving card</span>
               <label>Destination Card ID</label>
             </div>
-            <input v-model="form.destCardId" type="text" placeholder="e.g. EZ-9999999999" />
+            <select v-if="userCards.filter(c => c !== form.lostCardId).length > 0" v-model="form.destCardId" class="card-select">
+              <option value="">— Select destination card —</option>
+              <option v-for="cid in userCards.filter(c => c !== form.lostCardId)" :key="cid" :value="cid">Card #{{ cid }}</option>
+            </select>
+            <input v-else v-model="form.destCardId" type="text" placeholder="e.g. 2" />
           </div>
           <div class="info-box">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -218,10 +226,21 @@ async function handleReport() {
 }
 
 function reset() { form.value = { lostCardId: '', destCardId: '' }; submitted.value = false; result.value = null; error.value = '' } */
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNotifications } from '~/composables/useNotifications'
 
 const { addNotification } = useNotifications()
+
+const userCards = ref([])
+onMounted(() => {
+  try {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      const u = JSON.parse(stored)
+      userCards.value = u.cards ?? []
+    }
+  } catch {}
+})
 
 const mode      = ref('transfer')
 const form      = ref({ lostCardId: '', destCardId: '' })
@@ -312,8 +331,8 @@ function reset() {
 
 .form-card { background: white; border: 1px solid #e8e8f0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 100%; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group input { border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
-.form-group input:focus { border-color: #ef4444; }
+.form-group input, .card-select { border: 1.5px solid #e0e0f0; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; color: #1a1a2e; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; font-family: inherit; background: #fff; }
+.form-group input:focus, .card-select:focus { border-color: #ef4444; }
 .form-group label { font-size: 0.82rem; font-weight: 600; color: #555; }
 
 

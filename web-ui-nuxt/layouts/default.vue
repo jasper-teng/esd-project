@@ -35,7 +35,14 @@
           </NuxtLink>
         </nav>
 
-        <div class="notif-wrap">
+        <div class="right-side">
+          <div class="user-wrap" v-if="user">
+            <span class="user-name">{{ user.name || user.email }}</span>
+            <button class="logout-btn" @click="logout">Sign out</button>
+          </div>
+          <NuxtLink v-else to="/login" class="login-btn">Sign In</NuxtLink>
+
+          <div class="notif-wrap">
           <button class="notif-btn" @click="notifOpen = !notifOpen">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             <span v-if="unread > 0" class="notif-badge">{{ unread }}</span>
@@ -64,6 +71,7 @@
             </div>
           </div>
         </div>
+        </div>
 
       </div>
     </header>
@@ -80,16 +88,35 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNotifications } from '~/composables/useNotifications'
 
 const { notifications, unread, markRead, markAllRead } = useNotifications()
+const router = useRouter()
 
 const notifOpen = ref(false)
+const user = ref(null)
+
+function loadUser() {
+  try {
+    const stored = localStorage.getItem('user')
+    user.value = stored ? JSON.parse(stored) : null
+  } catch { user.value = null }
+}
+
+function logout() {
+  localStorage.removeItem('user')
+  user.value = null
+  router.push('/login')
+}
 
 function handleClickOutside(e) {
   if (!e.target.closest('.notif-wrap')) notifOpen.value = false
 }
-onMounted(() => document.addEventListener('click', handleClickOutside))
+onMounted(() => {
+  loadUser()
+  document.addEventListener('click', handleClickOutside)
+})
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
@@ -172,6 +199,23 @@ body {
 .nl--green:hover, .nl--green.router-link-active {
   background: var(--purple-l); color: var(--purple-d);
 }
+
+.right-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.user-wrap  { display: flex; align-items: center; gap: 10px; }
+.user-name  { font-size: 13px; font-weight: 500; color: #fff; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-btn {
+  font-size: 12px; font-weight: 600; color: #fff;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 7px; padding: 5px 12px; cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.logout-btn:hover { background: rgba(255,255,255,0.25); }
+.login-btn {
+  font-size: 13px; font-weight: 600; color: #fff; text-decoration: none;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 7px; padding: 6px 14px; transition: background 0.15s; flex-shrink: 0;
+}
+.login-btn:hover { background: rgba(255,255,255,0.25); }
 
 .notif-wrap { position: relative; flex-shrink: 0; }
 

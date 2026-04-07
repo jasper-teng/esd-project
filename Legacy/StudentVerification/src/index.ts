@@ -76,8 +76,8 @@ app.post("/students", async (c) => {
   const body = await c.req.json();
   const { identification_number, name, school, date_of_birth } = body;
 
-  if (!identification_number || !name || !school || !date_of_birth) {
-    return c.json({ error: "identification_number, name, school and date_of_birth are all required" }, 400);
+  if (!identification_number || !school) {
+    return c.json({ error: "identification_number and school are required" }, 400);
   }
 
   const id = String(identification_number).trim().toUpperCase();
@@ -85,7 +85,7 @@ app.post("/students", async (c) => {
   try {
     const [inserted] = await db
       .insert(students)
-      .values({ identification_number: id, name, school, date_of_birth })
+      .values({ identification_number: id, name: name ?? null, school, date_of_birth: date_of_birth ?? null })
       .returning();
 
     return c.json({ success: true, student: inserted }, 201);
