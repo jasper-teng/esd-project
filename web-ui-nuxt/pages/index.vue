@@ -73,69 +73,24 @@
           <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           <div class="chip-info">
             <span class="chip-id">Card #{{ c.card_id }}</span>
-            <span class="chip-balance" v-if="c.balance !== null">${{ parseFloat(c.balance).toFixed(2) }}</span>
+            <div class="chip-meta">
+              <span class="chip-balance" v-if="c.balance !== null">${{ parseFloat(c.balance).toFixed(2) }}</span>
+              <span v-if="c.concession_type" class="chip-concession">{{ c.concession_type }}</span>
+            </div>
           </div>
-          <span class="chip-status" :class="c.is_active ? 'active' : 'inactive'">
-            {{ c.is_active ? 'Active' : 'Inactive' }}
+          <span class="chip-status" :class="chipStatusClass(c)">
+            {{ chipStatusLabel(c) }}
           </span>
         </div>
       </div>
     </div>
 
-    <!-- Card lookup -->
-    <div class="lookup-card">
-      <div class="section-title">Check your card details</div>
-      <CardLookup
-        label="Card ID"
-        placeholder="e.g. 1"
-        btn-text="Look up"
-        :loading="loading"
-        @lookup="handleLookup"
-      />
-
-      <transition name="fade">
-        <div v-if="card" class="card-result">
-          <div class="result-top">
-            <div>
-              <div class="result-id">Card #{{ card.id }}</div>
-              <div class="result-name">{{ card.name }}</div>
-              <div v-if="card.name2" class="result-email">{{ card.name2 }}</div>
-            </div>
-          </div>
-          <div class="result-stats">
-            <div class="stat-pill">
-              <div class="stat-label">Card ID</div>
-              <div class="stat-value">{{ card.id }}</div>
-            </div>
-            <div class="stat-pill">
-              <div class="stat-label">Name</div>
-              <div class="stat-value">{{ card.name }}</div>
-            </div>
-            <div v-if="card.balance !== null" class="stat-pill">
-              <div class="stat-label">Balance</div>
-              <div class="stat-value">${{ parseFloat(card.balance).toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-      </transition>
-
-      <transition name="fade">
-        <div v-if="error" class="alert alert--error">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          {{ error }}
-        </div>
-      </transition>
-    </div>
 
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-
-const card    = ref(null)
-const error   = ref('')
-const loading = ref(false)
 
 // Auth
 const user = ref(null)
@@ -160,19 +115,51 @@ onMounted(() => {
 async function loadMyCards() {
   if (!user.value) return
   try {
-    const [userCardsRes, walletRes] = await Promise.all([
+    const [userCardsRes, walletRes, cardRes] = await Promise.all([
       fetch(`http://localhost:8000/user/cards/${user.value.id}`),
       fetch('http://localhost:8000/test'),
+      fetch('http://localhost:8000/getCard'),
     ])
     const userCardsJson = await userCardsRes.json()
-    const wallets = walletRes.ok ? await walletRes.json() : []
+    const wallets  = walletRes.ok ? await walletRes.json() : []
+    const cardData = cardRes.ok  ? await cardRes.json()   : []
 
     const cards = userCardsRes.ok ? (userCardsJson.data ?? []) : []
-    myCards.value = cards.map(c => {
-      const wallet = wallets.find(w => String(w.card_id) === String(c.card_id))
-      return { ...c, balance: wallet?.balance ?? null }
+
+    // Deduplicate by card_id, keep the active one if duplicates exist
+    const seen = new Map()
+    for (const c of cards) {
+      const key = String(c.card_id)
+      if (!seen.has(key) || c.is_active) seen.set(key, c)
+    }
+
+    myCards.value = [...seen.values()].map(c => {
+      const wallet    = wallets.find(w => String(w.card_id) === String(c.card_id))
+      const cardInfo  = Array.isArray(cardData) ? cardData.find(k => String(k.id) === String(c.card_id)) : null
+      const cardStatus     = cardInfo?.cardStatus ?? null
+      const concession_type = cardInfo?.concession_type ?? null
+      return {
+        ...c,
+        balance: wallet?.balance ?? null,
+        cardStatus,
+        concession_type,
+      }
     })
   } catch {}
+}
+
+function chipStatusClass(c) {
+  const s = c.cardStatus?.toUpperCase()
+  if (s === 'LOST' || s === 'BLOCKED') return 'blocked'
+  if (!c.is_active) return 'inactive'
+  return 'active'
+}
+function chipStatusLabel(c) {
+  const s = c.cardStatus?.toUpperCase()
+  if (s === 'LOST') return 'Blocked'
+  if (s === 'BLOCKED') return 'Blocked'
+  if (!c.is_active) return 'Inactive'
+  return 'Active'
 }
 
 async function linkCard() {
@@ -203,30 +190,6 @@ async function linkCard() {
   linking.value = false
 }
 
-async function handleLookup(id) {
-  loading.value = true
-  card.value    = null
-  error.value   = ''
-  try {
-    const [cardRes, walletRes] = await Promise.all([
-      fetch('http://localhost:8000/getCard'),
-      fetch('http://localhost:8000/test')
-    ])
-    const cards = await cardRes.json()
-    const wallets = await walletRes.json()
-
-    const found = cards.find(c => c.id === parseInt(id))
-    if (found) {
-      const wallet = wallets.find(w => w.card_id === parseInt(id))
-      card.value = { ...found, balance: wallet?.balance ?? null }
-    } else {
-      error.value = `No card found with ID "${id}".`
-    }
-  } catch (err) {
-    error.value = 'Could not reach the card service.'
-  }
-  loading.value = false
-}
 </script>
 
 <style scoped>
@@ -288,54 +251,7 @@ async function handleLookup(id) {
 }
 .sc-card:hover .sc-desc { opacity: 1; }
 
-/* ── Lookup card ── */
-.lookup-card {
-  background: #eef6ff;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 580px;
-}
-
 .section-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
-
-.card-result { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-
-.result-top {
-  background: var(--purple-l); padding: 16px;
-  display: flex; justify-content: space-between;
-  align-items: flex-start; flex-wrap: wrap; gap: 8px;
-}
-
-.result-id    { font-size: 15px; font-weight: 600; color: var(--purple-d); letter-spacing: -0.2px; }
-.result-name  { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
-.result-email { font-size: 12px; color: var(--muted); }
-
-.result-stats {
-  padding: 14px 16px; background: var(--surface);
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start;
-}
-
-.stat-pill {
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 12px;
-}
-.stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--hint); }
-.stat-value { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 3px; text-transform: capitalize; }
-
-.alert {
-  display: flex; align-items: center; gap: 8px;
-  border-radius: var(--rs); padding: 10px 14px;
-  font-size: 13px; font-weight: 500;
-}
-.alert svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; }
-.alert--error { background: var(--red-l); border: 1px solid #f0c8c8; color: var(--red-d); }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.25s, transform 0.25s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(6px); }
 .admin-link { text-align: right; margin-bottom: 16px; }
 .admin-btn { font-size: 13px; color: #6b7280; text-decoration: none; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 14px; }
 .admin-btn:hover { background: #f9fafb; }
@@ -382,9 +298,12 @@ async function handleLookup(id) {
 }
 .card-chip svg { width: 20px; height: 20px; stroke: var(--purple); stroke-width: 1.8; fill: none; flex-shrink: 0; }
 .chip-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.chip-id      { font-size: 13px; font-weight: 600; color: var(--text); }
-.chip-balance { font-size: 12px; color: var(--muted); }
+.chip-id         { font-size: 13px; font-weight: 600; color: var(--text); }
+.chip-meta       { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.chip-balance    { font-size: 12px; color: var(--muted); }
+.chip-concession { font-size: 11px; font-weight: 600; background: var(--purple-l); color: var(--purple-d); padding: 1px 7px; border-radius: 20px; text-transform: capitalize; }
 .chip-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
 .chip-status.active   { background: var(--teal-l); color: var(--teal-d); }
-.chip-status.inactive { background: var(--red-l); color: var(--red-d); }
+.chip-status.inactive { background: #f3f4f6; color: #6b7280; }
+.chip-status.blocked  { background: var(--red-l); color: var(--red-d); }
 </style>

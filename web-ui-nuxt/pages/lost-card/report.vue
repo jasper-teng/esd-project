@@ -13,35 +13,17 @@
       </div>
       <div>
         <h1>Report Lost Card</h1>
-        <p>Block your lost card and transfer remaining balance to another card</p>
+        <p>Permanently block your lost card — optionally transfer remaining balance to another card</p>
       </div>
     </div>
 
     <div v-if="!submitted" class="form-card">
 
-      
       <div class="warning-box">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         This action is irreversible. Once reported, the card will be permanently blocked.
       </div>
 
-      
-      <div class="action-toggles">
-        <button class="toggle-btn" :class="{ 'toggle-btn--active': mode === 'block', 'toggle-btn--inactive': mode !== 'block' }" @click="mode = 'block'">
-          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="9" y1="14" x2="15" y2="17"/><line x1="15" y1="14" x2="9" y2="17"/></svg>
-          Block card only
-        </button>
-        <button class="toggle-btn" :class="{ 'toggle-btn--active': mode === 'transfer', 'toggle-btn--inactive': mode !== 'transfer' }" @click="mode = 'transfer'">
-          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
-          Block &amp; transfer balance
-        </button>
-      </div>
-
-      <p class="mode-desc">{{ mode === 'block' ? 'Your card will be immediately blocked. No balance transfer will take place.' : 'Your card will be blocked and all remaining balance transferred to a receiving card.' }}</p>
-
-      <div class="form-divider"></div>
-
-      
       <div class="form-group">
         <div class="field-label-row">
           <span class="field-tag field-tag--red">Lost card</span>
@@ -54,35 +36,43 @@
         <input v-else v-model="form.lostCardId" type="text" placeholder="e.g. 1" />
       </div>
 
-      
-      <transition name="slide-down">
-        <div v-if="mode === 'transfer'" class="dest-group">
-          <div class="transfer-connector">
-            <div class="connector-line"></div>
-            <span class="connector-label">Transfer balance to</span>
-            <div class="connector-line"></div>
+      <div class="form-divider"></div>
+
+      <div class="transfer-section">
+        <div class="transfer-toggle-row">
+          <div>
+            <div class="transfer-label">Transfer remaining balance</div>
+            <div class="transfer-hint">Optionally move your balance to another card</div>
           </div>
-          <div class="form-group">
-            <div class="field-label-row">
-              <span class="field-tag field-tag--purple">Receiving card</span>
-              <label>Destination Card ID</label>
-            </div>
-            <select v-if="userCards.filter(c => c !== form.lostCardId).length > 0" v-model="form.destCardId" class="card-select">
-              <option value="">— Select destination card —</option>
-              <option v-for="cid in userCards.filter(c => c !== form.lostCardId)" :key="cid" :value="cid">Card #{{ cid }}</option>
-            </select>
-            <input v-else v-model="form.destCardId" type="text" placeholder="e.g. 2" />
-          </div>
-          <div class="info-box">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            If the lost card has an active or incomplete trip, the maximum fare will be deducted via Manage Incomplete Journey before the remaining balance is transferred.
-          </div>
+          <button class="toggle-switch" :class="{ on: transferEnabled }" @click="transferEnabled = !transferEnabled; form.destCardId = ''">
+            <span class="toggle-knob"></span>
+          </button>
         </div>
-      </transition>
+
+        <transition name="slide-down">
+          <div v-if="transferEnabled" class="dest-group">
+            <div class="form-group">
+              <div class="field-label-row">
+                <span class="field-tag field-tag--purple">Receiving card</span>
+                <label>Destination Card ID</label>
+              </div>
+              <select v-if="userCards.filter(c => c !== form.lostCardId).length > 0" v-model="form.destCardId" class="card-select">
+                <option value="">— Select destination card —</option>
+                <option v-for="cid in userCards.filter(c => c !== form.lostCardId)" :key="cid" :value="cid">Card #{{ cid }}</option>
+              </select>
+              <input v-else v-model="form.destCardId" type="text" placeholder="e.g. 2" />
+            </div>
+            <div class="info-box">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              If the card has an active trip, the maximum fare will be deducted before the balance is transferred.
+            </div>
+          </div>
+        </transition>
+      </div>
 
       <button class="btn btn--red" :disabled="!canSubmit || loading" @click="handleReport">
         <span v-if="loading" class="spinner"></span>
-        <span v-else>{{ mode === 'block' ? 'Block card' : 'Block & transfer balance' }}</span>
+        <span v-else>{{ transferEnabled ? 'Block Card & Transfer Balance' : 'Block Card' }}</span>
       </button>
     </div>
 
@@ -105,7 +95,7 @@
             </div>
             <div><div class="tl-label">Step 3–4 — Incomplete trip check (Trip Service → Manage Incomplete Journey)</div><div class="tl-time">{{ result.maxFareDeducted ? `Active trip found — $${result.maxFareDeducted} max fare deducted` : 'No active trip found — skipped' }}</div></div>
           </div>
-          <div v-if="mode === 'transfer'" class="tl-item tl-item--done">
+          <div v-if="transferEnabled" class="tl-item tl-item--done">
             <div class="tl-dot tl-dot--done"><svg viewBox="0 0 10 10"><polyline points="2,5 4,7 8,3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
             <div><div class="tl-label">Step 5–6 — Balance transferred via Wallet Service (HTTP POST)</div><div class="tl-time">${{ result.transferredAmount }} transferred to {{ form.destCardId }}</div></div>
           </div>
@@ -115,7 +105,7 @@
           </div>
         </div>
 
-        <div v-if="mode === 'transfer'" class="transfer-summary">
+        <div v-if="transferEnabled" class="transfer-summary">
           <div class="transfer-card transfer-card--lost">
             <div class="tc-label">Lost card</div>
             <div class="tc-id">{{ form.lostCardId }}</div>
@@ -242,7 +232,7 @@ onMounted(() => {
   } catch {}
 })
 
-const mode      = ref('transfer')
+const transferEnabled = ref(false)
 const form      = ref({ lostCardId: '', destCardId: '' })
 const loading   = ref(false)
 const submitted = ref(false)
@@ -251,7 +241,7 @@ const error     = ref('')
 
 const canSubmit = computed(() => {
   if (!form.value.lostCardId.trim()) return false
-  if (mode.value === 'transfer') return form.value.destCardId.trim() && form.value.lostCardId.trim() !== form.value.destCardId.trim()
+  if (transferEnabled.value) return form.value.destCardId.trim() && form.value.lostCardId.trim() !== form.value.destCardId.trim()
   return true
 })
 
@@ -264,7 +254,7 @@ async function handleReport() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         card_id: form.value.lostCardId.trim(),
-        destinationCardID: mode.value === 'transfer' ? form.value.destCardId.trim() : null,
+        destinationCardID: transferEnabled.value ? form.value.destCardId.trim() : undefined,
       })
     })
 
@@ -277,7 +267,7 @@ async function handleReport() {
       return
     }
 
-    addNotification('Lost card blocked', mode.value === 'transfer'
+    addNotification('Lost card blocked', transferEnabled.value
       ? `Card ${form.value.lostCardId} blocked. $${data.amountTransferred?.toFixed(2)} transferred to ${form.value.destCardId}.`
       : `Card ${form.value.lostCardId} has been permanently blocked.`
     )
@@ -287,7 +277,7 @@ async function handleReport() {
       maxFareDeducted: data.maxFareDeducted ?? null,
       details: {
         'Lost card blocked': form.value.lostCardId,
-        ...(mode.value === 'transfer' ? {
+        ...(transferEnabled.value ? {
           'Balance transferred': `$${data.amountTransferred?.toFixed(2) ?? '0.00'}`,
           'Transferred to': form.value.destCardId,
         } : {}),
@@ -305,6 +295,7 @@ async function handleReport() {
 
 function reset() {
   form.value = { lostCardId: '', destCardId: '' }
+  transferEnabled.value = false
   submitted.value = false
   result.value = null
   error.value = ''
@@ -340,12 +331,23 @@ function reset() {
 .warning-box svg { width: 14px; height: 14px; stroke: #dc2626; stroke-width: 2; fill: none; stroke-linecap: round; flex-shrink: 0; margin-top: 1px; }
 
 
-.action-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.toggle-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 13px; border-radius: 10px; border: 1.5px solid #e0e0f0; background: white; font-size: 13px; font-weight: 600; color: #888; cursor: pointer; transition: all .2s; font-family: inherit; }
-.toggle-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-.toggle-btn--active  { background: #ef4444; border-color: #ef4444; color: #fff; }
-.toggle-btn--inactive:hover { border-color: #ef4444; color: #ef4444; }
-.mode-desc { font-size: 12px; color: #888; line-height: 1.5; margin: -4px 0 -2px; }
+.transfer-section { display: flex; flex-direction: column; gap: 12px; }
+.transfer-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.transfer-label { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+.transfer-hint  { font-size: 12px; color: #888; margin-top: 2px; }
+
+.toggle-switch {
+  width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer;
+  background: #e0e0f0; position: relative; transition: background 0.2s; flex-shrink: 0; padding: 0;
+}
+.toggle-switch.on { background: #ef4444; }
+.toggle-knob {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%; background: white;
+  transition: transform 0.2s; display: block;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch.on .toggle-knob { transform: translateX(20px); }
 .form-divider { height: 1px; background: #f0f0f0; }
 
 

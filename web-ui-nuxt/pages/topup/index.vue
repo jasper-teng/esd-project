@@ -16,17 +16,6 @@
       </div>
     </div>
 
-    <!-- Test mode user selector -->
-    <div class="test-banner">
-      <span class="test-badge">TEST MODE</span>
-      <span>Simulating as:</span>
-      <select v-model="selectedUserId" @change="onUserChange" class="user-select">
-        <option v-for="u in mockUsers" :key="u.id" :value="u.id">{{ u.name }} ({{ u.id }})</option>
-      </select>
-      <span class="stripe-mode" :class="stripeMode === 'TEST 🟡' ? 'mode-test' : 'mode-live'">
-        Stripe: {{ stripeMode }}
-      </span>
-    </div>
 
     <div class="two-col">
 
@@ -308,40 +297,38 @@ import { loadStripe } from '@stripe/stripe-js'
 const config  = useRuntimeConfig()
 const GATEWAY = 'http://localhost:8000'
 
-const mockUsers = [
-  { id: 'user_1', name: 'Alice Tan' },
-  { id: 'user_2', name: 'Bob Lim'  },
-]
+// Logged-in user
+const user           = ref(null)
+const selectedUserId = computed(() => user.value ? String(user.value.id) : '')
 
-const userNameMap = {
-  user_1: 'Alice Tan',
-  user_2: 'Bob Lim',
-}
-
-const selectedUserId = ref('user_1')
 const travelCards    = ref([])
 const selectedCardId = ref('')
 const loadingCards   = ref(false)
 
 async function fetchTravelCards() {
+  if (!user.value) return
   loadingCards.value = true
   try {
-    const [cardRes, walletRes] = await Promise.all([
-      fetch('http://localhost:8000/getCard'),
-      fetch('http://localhost:8000/test')
+    const [userCardsRes, walletRes] = await Promise.all([
+      fetch(`http://localhost:8000/user/cards/${user.value.id}`),
+      fetch('http://localhost:8000/test'),
     ])
-    const cards   = await cardRes.json()
-    const wallets = await walletRes.json()
+    const userCardsJson = await userCardsRes.json()
+    const wallets       = walletRes.ok ? await walletRes.json() : []
+    const linkedCards   = userCardsRes.ok ? (userCardsJson.data ?? []) : []
 
-    const userName = userNameMap[selectedUserId.value]
-    const filtered = cards.filter(c => c.name === userName)
+    // Deduplicate by card_id, keep active
+    const seen = new Map()
+    for (const c of linkedCards) {
+      if (!seen.has(String(c.card_id)) || c.is_active) seen.set(String(c.card_id), c)
+    }
 
-    travelCards.value = filtered.map(card => {
-      const wallet = wallets.find(w => w.card_id === card.id)
+    travelCards.value = [...seen.values()].map(c => {
+      const wallet = wallets.find(w => String(w.card_id) === String(c.card_id))
       return {
-        id:      String(card.id),
-        label:   card.name2 ?? card.name,
-        balance: parseFloat(wallet?.balance ?? 0)
+        id:      String(c.card_id),
+        label:   `Card #${c.card_id}`,
+        balance: parseFloat(wallet?.balance ?? 0),
       }
     })
   } catch (err) {
@@ -349,13 +336,6 @@ async function fetchTravelCards() {
   } finally {
     loadingCards.value = false
   }
-}
-
-function onUserChange() {
-  selectedCardId.value     = ''
-  autoSettingsCardId.value = ''
-  fetchTravelCards()
-  fetchSavedPMs()
 }
 
 function selectCard(id) {
@@ -372,7 +352,6 @@ let addCardEl     = null
 let topupElements = null
 let topupCardEl   = null
 const stripeReady         = ref(false)
-const stripeMode          = ref('...')
 const addCardElementRef   = ref(null)
 const topupCardElementRef = ref(null)
 
@@ -386,13 +365,12 @@ const CARD_STYLE = {
 }
 
 onMounted(async () => {
-  await fetchTravelCards()
-
   try {
-    const r = await fetch(`${GATEWAY}/`)
-    const d = await r.json()
-    stripeMode.value = d.stripe_mode?.includes('LIVE') ? 'LIVE 🔴' : 'TEST 🟡'
-  } catch { stripeMode.value = 'Offline' }
+    const stored = localStorage.getItem('user')
+    if (stored) user.value = JSON.parse(stored)
+  } catch {}
+
+  await fetchTravelCards()
 
   if (!config.public.stripeKey || config.public.stripeKey.includes('YOUR_')) {
     console.warn('[Stripe] Publishable key not set in web-ui-nuxt/.env')
@@ -689,22 +667,6 @@ async function submitTopup() {
 .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
 .page-header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
 
-.test-banner {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px;
-  padding: 10px 16px; margin-bottom: 24px; font-size: 0.9rem;
-}
-.test-badge {
-  background: #ff9800; color: white; font-size: 0.72rem; font-weight: 700;
-  padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em;
-}
-.user-select {
-  border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px;
-  background: white; font-size: 0.9rem;
-}
-.stripe-mode { margin-left: auto; font-weight: 600; font-size: 0.85rem; }
-.mode-test { color: #f59e0b; }
-.mode-live { color: #ef4444; }
 
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
