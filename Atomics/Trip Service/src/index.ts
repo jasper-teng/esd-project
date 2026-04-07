@@ -59,7 +59,7 @@ app.get('/trip/incomplete/:card_id', async (c) => {
   const card_id = c.req.param('card_id');
 
   const result = await db.select().from(trip).where(
-    and(eq(trip.card_id, card_id), eq(trip.status, 'incomplete'))
+    and(eq(trip.card_id, card_id), eq(trip.status, 'in_progress'))
   );
 
   if (result.length === 0) {

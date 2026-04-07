@@ -11,9 +11,10 @@ const portno: number = process.env.PROCESS_CONCESSION_PORT ? Number(process.env.
 const PAYMENT_GATEWAY = process.env.PAYMENT_GATEWAY_URL || 'http://payment_gateway:3010'
 const CARD_MS         = process.env.CARD_MS_URL         || 'http://card_ms:3001'
 const USER_MS         = process.env.USER_MS_URL         || 'http://user_ms:3006'
+const WALLET_MS       = process.env.WALLET_MS_URL       || 'http://wallet_ms:3002'
 
 // Fixed concession application fee
-const APPLICATION_FEE = 12.00
+const APPLICATION_FEE = 10.10
 
 app.get('/', (c) => c.text('Process Concession composite running!'))
 
@@ -31,10 +32,10 @@ app.post('/apply-concession', async (c) => {
     payment_method,
   } = await c.req.json()
 
-  if (!user_id || !existing_card_id || !email || !payment_method) {
+  if (!user_id || !email || !payment_method) {
     return c.json({
       status: 'error',
-      reason: 'user_id, existing_card_id, email, payment_method are required'
+      reason: 'user_id, email, payment_method are required'
     }, 400)
   }
 
@@ -81,17 +82,26 @@ app.post('/apply-concession', async (c) => {
       return c.json({ status: 'error', reason: 'Card created but ID not returned' }, 500)
     }
 
-    // Step 3: Link both cards to user in User Service
-    // Link existing card (if not already linked)
-    await fetch(`${USER_MS}/user/card`, {
+    // Create wallet for new concession card
+    await fetch(`${WALLET_MS}/wallet`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id,
-        card_id: existing_card_id,
-        is_active: true,
-      })
+      body: JSON.stringify({ card_id: String(new_card_id), initial_balance: '0.00' })
     })
+
+    // Step 3: Link cards to user in User Service
+    // Link existing card if provided
+    if (existing_card_id) {
+      await fetch(`${USER_MS}/user/card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id,
+          card_id: existing_card_id,
+          is_active: true,
+        })
+      })
+    }
 
     // Link new concession card with interim tracking start date
     const linkRes = await fetch(`${USER_MS}/user/card`, {
@@ -102,7 +112,7 @@ app.post('/apply-concession', async (c) => {
         card_id: String(new_card_id),
         is_active: true,
         interim_start_date: new Date().toISOString(),
-        existing_card_id: String(existing_card_id),
+        existing_card_id: existing_card_id ? String(existing_card_id) : null,
       })
     })
     if (!linkRes.ok) {

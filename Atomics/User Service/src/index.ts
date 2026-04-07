@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, ne, isNotNull } from 'drizzle-orm'
 import { userCard } from './db/schema.js'
 
 const db = drizzle(process.env.USER_DATABASE_URL!);
@@ -97,14 +97,21 @@ app.get('/user/active-cards/:lost_card_id', async (c) => {
   return c.json({ code: 200, data: activeCards });
 });
 
+// GET /user/interim-cards — get all cards with an interim_start_date (pending shipment)
+app.get('/user/interim-cards', async (c) => {
+  const result = await db.select().from(userCard).where(isNotNull(userCard.interim_start_date));
+  return c.json({ code: 200, data: result });
+});
+
 // PUT /user/card/:card_id — update card link (e.g. deactivate on loss)
 app.put('/user/card/:card_id', async (c) => {
   const card_id = c.req.param('card_id');
   const body = await c.req.json();
-  const { is_active } = body;
+  const { is_active, clear_interim } = body;
 
   const updated = await db.update(userCard).set({
     ...(is_active !== undefined && { is_active }),
+    ...(clear_interim && { interim_start_date: null }),
   }).where(eq(userCard.card_id, card_id)).returning();
 
   if (updated.length === 0) {
