@@ -174,7 +174,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 async function handleTapIn() {
   loading.value = true; result.value = null
   try {
-    const res = await fetch('http://localhost:4001/tap-in', {
+    const res = await fetch('http://localhost:8000/tap-in', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -214,7 +214,7 @@ async function handleTapIn() {
 async function handleTapOut() {
   loading.value = true; result.value = null
   try {
-    const res = await fetch('http://localhost:4003/tap-out', {
+    const res = await fetch('http://localhost:8000/tap-out', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
