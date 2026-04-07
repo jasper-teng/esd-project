@@ -1,4 +1,14 @@
 services:
+
+  webui:
+    build:
+      context: ./web-ui-nuxt
+      dockerfile: WebUI.Dockerfile
+    ports:
+      - '3000:3000'
+    networks:
+      - esd-network
+
   card_ms:
     build:
       context: ./Atomics/Card
