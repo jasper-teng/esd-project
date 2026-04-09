@@ -59,8 +59,22 @@ const autoTopupSettings = new Map<string, AutoTopupConfig>();
 // Helper — ensure a Stripe Customer exists for a user, create if not
 // ---------------------------------------------------------------------------
 async function ensureCustomer(userId: string): Promise<string> {
-  const existing = userCustomers.get(userId);
-  if (existing) return existing;
+  const cached = userCustomers.get(userId);
+  if (cached) return cached;
+
+  // Recover from container restart: search Stripe for an existing customer
+  // with this user_id in metadata before creating a new one.
+  const search = await stripe.customers.search({
+    query: `metadata['user_id']:'${userId}'`,
+    limit: 1,
+  });
+
+  if (search.data.length > 0) {
+    userCustomers.set(userId, search.data[0].id);
+    console.log(`[STRIPE] Recovered existing customer for user ${userId}: ${search.data[0].id}`);
+    return search.data[0].id;
+  }
+
   const customer = await stripe.customers.create({
     description: `SimplyGo user ${userId}`,
     metadata: { user_id: userId },
@@ -316,6 +330,49 @@ app.post('/topup/saved', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// MANUAL TOP-UP — confirm new-card payment (called by frontend after confirmCardPayment)
+// POST /topup/confirm
+// Body: { payment_intent_id, travel_card_id }
+// Returns: { success, amount_sgd }
+//
+// When paying with a new card, stripe.confirmCardPayment() runs on the frontend.
+// The backend only learns of success via webhook — but webhooks require the Stripe
+// CLI to be forwarding and STRIPE_WEBHOOK_SECRET to be configured.
+// This endpoint lets the frontend confirm success directly: it retrieves the intent
+// from Stripe to verify status, then credits the wallet. No webhook needed.
+// ---------------------------------------------------------------------------
+app.post('/topup/confirm', async (c) => {
+  try {
+    const { payment_intent_id, travel_card_id } = await c.req.json<{
+      payment_intent_id: string;
+      travel_card_id: string;
+    }>();
+
+    if (!payment_intent_id || !travel_card_id) {
+      return c.json({ error: 'payment_intent_id and travel_card_id are required' }, 400);
+    }
+
+    const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (intent.status !== 'succeeded') {
+      return c.json({ error: `Payment not succeeded: ${intent.status}` }, 400);
+    }
+
+    const amount_sgd = parseFloat(intent.metadata.amount_sgd);
+    if (isNaN(amount_sgd) || amount_sgd <= 0) {
+      return c.json({ error: 'Invalid amount in payment intent metadata' }, 400);
+    }
+
+    await creditWallet(travel_card_id, amount_sgd);
+    console.log(`[WALLET] Confirmed top-up — $${amount_sgd} credited to card ${travel_card_id}`);
+
+    return c.json({ success: true, amount_sgd });
+  } catch (err: unknown) {
+    console.error('[STRIPE] /topup/confirm error:', err);
+    return c.json({ error: err instanceof Error ? err.message : 'Stripe error' }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // AUTO TOP-UP SETTINGS — get
 // GET /auto-topup/:userId/:travelCardId
 // ---------------------------------------------------------------------------
@@ -514,6 +571,7 @@ serve({ fetch: app.fetch, port: PORT }, () => {
   console.log(`║  GET  /payment-methods/:uid   List saved cards    ║`);
   console.log(`║  DELETE /payment-methods/:u/:pm  Remove card      ║`);
   console.log(`║  POST /topup/intent           New card top-up     ║`);
+  console.log(`║  POST /topup/confirm          Confirm + credit     ║`);
   console.log(`║  POST /topup/saved            Saved card top-up   ║`);
   console.log(`║  GET  /auto-topup/:u/:card    Get settings        ║`);
   console.log(`║  PUT  /auto-topup/:u/:card    Update settings     ║`);

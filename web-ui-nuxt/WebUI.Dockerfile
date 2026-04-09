@@ -20,6 +20,7 @@ WORKDIR /app
 # Only `.output` folder is needed from the build stage
 COPY --from=build /app/.output /app
 
-# run the app
+# NUXT_PUBLIC_* runtime config is read from process.env at server start.
+# Inject it via env_file in compose.yaml — no build-time baking needed.
 EXPOSE 3000/tcp
 ENTRYPOINT [ "bun", "--bun", "run", "/app/server/index.mjs" ]

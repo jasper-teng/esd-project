@@ -146,7 +146,7 @@ add_service "lta-service"    "http://lta_ms:3007"               '["/lta"]'
 
 # --- Payment Gateway (direct URL) ---
 add_service "payment-service" "http://payment_gateway:3010" \
-  '["/setup-intent", "/payment-methods", "/charge", "/topup/intent", "/topup/saved", "/topup/auto", "/auto-topup", "/webhook"]'
+  '["/setup-intent", "/payment-methods", "/charge", "/topup/intent", "/topup/confirm", "/topup/saved", "/topup/auto", "/auto-topup", "/webhook"]'
 
 # --- BEYOND LABS: High-traffic composites use Upstreams with health checks ---
 # Kong actively polls the health endpoint every 10s.

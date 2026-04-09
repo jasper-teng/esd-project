@@ -186,7 +186,10 @@
 
           <div class="stripe-field-wrap">
             <label>Card Details</label>
-            <div ref="addCardElementRef" class="stripe-element-box"></div>
+            <div v-if="!stripeReady" class="stripe-not-ready">
+              Stripe not configured — set <code>NUXT_PUBLIC_STRIPE_KEY</code> in <code>web-ui-nuxt/.env</code> and restart the dev server.
+            </div>
+            <div v-else ref="addCardElementRef" class="stripe-element-box"></div>
           </div>
 
           <div v-if="addCardError" class="error-box">{{ addCardError }}</div>
@@ -259,7 +262,10 @@
 
           <div v-if="topupUseNew" class="field-group">
             <label>Card Details</label>
-            <div ref="topupCardElementRef" class="stripe-element-box"></div>
+            <div v-if="!stripeReady" class="stripe-not-ready">
+              Stripe not configured — set <code>NUXT_PUBLIC_STRIPE_KEY</code> in <code>web-ui-nuxt/.env</code> and restart the dev server.
+            </div>
+            <div v-else ref="topupCardElementRef" class="stripe-element-box"></div>
             <label class="checkbox-row">
               <input type="checkbox" v-model="topupSaveCard" />
               <span>Save this card for future use</span>
@@ -313,8 +319,8 @@ async function fetchTravelCards() {
       fetch(`http://localhost:8000/user/cards/${user.value.id}`),
       fetch('http://localhost:8000/test'),
     ])
-    const userCardsJson = await userCardsRes.json()
-    const wallets       = walletRes.ok ? await walletRes.json() : []
+    const userCardsJson = await userCardsRes.json().catch(() => ({}))
+    const wallets       = walletRes.ok ? await walletRes.json().catch(() => []) : []
     const linkedCards   = userCardsRes.ok ? (userCardsJson.data ?? []) : []
 
     // Deduplicate by card_id, keep active
@@ -373,12 +379,22 @@ onMounted(async () => {
   await fetchTravelCards()
 
   if (!config.public.stripeKey || config.public.stripeKey.includes('YOUR_')) {
-    console.warn('[Stripe] Publishable key not set in web-ui-nuxt/.env')
+    console.error('[Stripe] Publishable key not configured. Set NUXT_PUBLIC_STRIPE_KEY in web-ui-nuxt/.env (local) or .env.docker (Docker).')
     return
   }
 
-  stripe = await loadStripe(config.public.stripeKey)
-  stripeReady.value = !!stripe
+  try {
+    stripe = await loadStripe(config.public.stripeKey)
+    if (!stripe) {
+      console.error('[Stripe] loadStripe() returned null — check that the publishable key is valid (must start with pk_test_ or pk_live_).')
+      return
+    }
+    stripeReady.value = true
+    console.log('[Stripe] Loaded successfully.')
+  } catch (err) {
+    console.error('[Stripe] Failed to load Stripe.js:', err)
+    return
+  }
 
   await fetchSavedPMs()
 })
@@ -634,7 +650,19 @@ async function submitTopup() {
       if (error) throw new Error(error.message)
       if (paymentIntent.status !== 'succeeded') throw new Error('Payment did not succeed')
 
-      // Payment gateway already credits wallet
+      // Confirm payment server-side so the wallet is credited immediately
+      // (avoids dependency on Stripe webhooks in development)
+      const confirmRes = await fetch(`${GATEWAY}/topup/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payment_intent_id: paymentIntent.id,
+          travel_card_id: topupCard.value.id,
+        }),
+      })
+      const confirmData = await confirmRes.json()
+      if (!confirmRes.ok) throw new Error(confirmData.error ?? 'Failed to credit wallet after payment')
+
       await fetchTravelCards()
       const updatedCard = travelCards.value.find(c => c.id === topupCard.value.id)
       if (updatedCard) topupCard.value = { ...updatedCard }
@@ -761,6 +789,8 @@ async function submitTopup() {
 .stripe-field-wrap label { display: block; font-size: 0.88rem; font-weight: 600; color: #555; margin-bottom: 8px; }
 .stripe-element-box { border: 2px solid #e0e0f0; border-radius: 10px; padding: 12px 14px; background: white; min-height: 46px; }
 .stripe-element-box:focus-within { border-color: #4f4caf; }
+.stripe-not-ready { border: 2px dashed #f59e0b; border-radius: 10px; padding: 12px 14px; background: #fffbeb; color: #92400e; font-size: 0.82rem; line-height: 1.5; }
+.stripe-not-ready code { background: #fde68a; border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 0.8rem; }
 
 .amount-input { width: 100%; border: 2px solid #e0e0f0; border-radius: 10px; padding: 10px 14px; font-size: 1rem; margin-top: 8px; outline: none; }
 .amount-input:focus { border-color: #4f4caf; }

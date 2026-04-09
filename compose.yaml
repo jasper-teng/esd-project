@@ -4,6 +4,8 @@ services:
     build:
       context: ./web-ui-nuxt
       dockerfile: WebUI.Dockerfile
+    env_file:
+      - .env.docker
     ports:
       - '3000:3000'
     networks:
@@ -20,6 +22,12 @@ services:
     depends_on:
       carddb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     networks:
       - esd-network
 
@@ -95,6 +103,12 @@ services:
     depends_on:
       walletdb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     networks:
       - esd-network
   
@@ -131,6 +145,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - esd-network
+
+  seed:
+    build:
+      context: ./Atomics/Card
+      dockerfile: Card.Dockerfile
+    command: npm run seed
+    env_file:
+      - .env.docker
+    depends_on:
+      card_ms:
+        condition: service_healthy
+      wallet_ms:
+        condition: service_healthy
+    restart: "no"
     networks:
       - esd-network
 
