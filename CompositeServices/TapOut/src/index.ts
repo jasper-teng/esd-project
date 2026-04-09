@@ -104,7 +104,7 @@ app.post('/tap-out', async (c) => {
     if (!fareRes.ok) {
       return c.json({ status: 'denied', reason: 'Fare calculation failed' }, 502)
     }
-    const fare_amount: number = fareJson.data.final_fare
+    const fare_amount: number = fareJson.data.base_fare
     console.log(fareJson);
     console.log(tripData);
     // Step 6: Deduct fare from wallet
