@@ -324,19 +324,19 @@ curl -sf -X POST "$KONG_ADMIN/consumers/admin/acls" \
   -d '{"group": "admins"}' > /dev/null
 echo ""
 
-# =============================================================================
-# 4. AUTHORISATION: ACL on admin-only route
-# =============================================================================
+# # =============================================================================
+# # 4. AUTHORISATION: ACL on admin-only route
+# # =============================================================================
 
-echo "======================================="
-echo "  STEP 4: ACL (Admin Routes)"
-echo "======================================="
+# echo "======================================="
+# echo "  STEP 4: ACL (Admin Routes)"
+# echo "======================================="
 
-echo ">>> ACL plugin on interim-refund-service-route  (admins only)"
-curl -sf -X POST "$KONG_ADMIN/routes/interim-refund-service-route/plugins" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "acl", "config": {"allow": ["admins"]}}' > /dev/null
-echo ""
+# echo ">>> ACL plugin on interim-refund-service-route  (admins only)"
+# curl -sf -X POST "$KONG_ADMIN/routes/interim-refund-service-route/plugins" \
+#   -H "Content-Type: application/json" \
+#   -d '{"name": "acl", "config": {"allow": ["admins"]}}' > /dev/null
+# echo ""
 
 # =============================================================================
 # BEYOND-LABS FEATURE 5: Tiered Rate Limiting per route
