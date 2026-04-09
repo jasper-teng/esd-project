@@ -31,6 +31,7 @@ app.post('/apply-concession', async (c) => {
     document_image,
     payment_method,
   } = await c.req.json()
+  
 
   if (!user_id || !email || !payment_method) {
     return c.json({
@@ -51,6 +52,7 @@ app.post('/apply-concession', async (c) => {
         user_id,
       })
     })
+
     if (!paymentRes.ok) {
       const paymentJson: any = await paymentRes.json()
       return c.json({ status: 'error', reason: paymentJson.message ?? 'Payment failed' }, 402)
@@ -92,6 +94,7 @@ app.post('/apply-concession', async (c) => {
     // Step 3: Link cards to user in User Service
     // Link existing card if provided
     if (existing_card_id) {
+      console.log("YES THERE IS AN EXISTING CARD");
       await fetch(`${USER_MS}/user/card`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

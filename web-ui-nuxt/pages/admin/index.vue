@@ -86,15 +86,21 @@ const allCards = ref([])
 
 const pendingCards = computed(() => allCards.value)
 
+const ADMIN_HEADERS = { 'Content-Type': 'application/json', 'apikey': 'admin123' }
+
 async function loadCards() {
   loading.value = true
+  console.log('[admin] loadCards: fetching interim-cards and getCard')
   try {
     const [interimRes, cardRes] = await Promise.all([
-      fetch('http://localhost:8000/user/interim-cards'),
-      fetch('http://localhost:8000/getCard'),
+      fetch('http://localhost:8000/user/interim-cards', { headers: ADMIN_HEADERS }),
+      fetch('http://localhost:8000/getCard', { headers: ADMIN_HEADERS }),
     ])
+    console.log('[admin] loadCards: interim-cards status', interimRes.status, '| getCard status', cardRes.status)
     const interimData = await interimRes.json()
     const cardData = await cardRes.json()
+    console.log('[admin] loadCards: interimData', interimData)
+    console.log('[admin] loadCards: cardData', cardData)
 
     const interimMap = {}
     for (const r of (interimData.data ?? [])) interimMap[String(r.card_id)] = r
@@ -104,29 +110,37 @@ async function loadCards() {
           .filter(c => interimMap[String(c.id)] && c.cardStatus === 'ACTIVE')
           .map(c => ({ ...c, existing_card_id: interimMap[String(c.id)]?.existing_card_id ?? null }))
       : []
-  } catch {
+    console.log('[admin] loadCards: pendingCards', allCards.value)
+  } catch (err) {
+    console.error('[admin] loadCards error:', err)
     allCards.value = []
   }
   loading.value = false
 }
 
 async function markShipped(cardId, concessionType) {
+  console.log(`[admin] markShipped: card_id=${cardId}  concession_type=${concessionType}`)
   shipping.value = cardId
   try {
+    console.log('[admin] markShipped: POST /interim-refund')
     const res  = await fetch('http://localhost:8000/interim-refund', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({ card_id: String(cardId), concession_type: concessionType })
     })
+    console.log('[admin] markShipped: /interim-refund status', res.status)
     const data = await res.json()
+    console.log('[admin] markShipped: /interim-refund response', data)
 
     if (data.status === 'success') {
       // Clear interim_start_date so card no longer appears as pending
-      await fetch(`http://localhost:8000/user/card/${cardId}`, {
+      console.log(`[admin] markShipped: PUT /user/card/${cardId} clear_interim`)
+      const clearRes = await fetch(`http://localhost:8000/user/card/${cardId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: ADMIN_HEADERS,
         body: JSON.stringify({ clear_interim: true })
       })
+      console.log('[admin] markShipped: clear_interim status', clearRes.status)
 
       if (data.refund_amount > 0) {
         addNotification(
@@ -153,13 +167,15 @@ async function markShipped(cardId, concessionType) {
         } : null
       }
     } else {
+      console.warn('[admin] markShipped: service returned error', data)
       result.value = {
         type: 'error',
         title: 'Processing Failed',
         message: data.reason ?? 'An error occurred while processing the shipment.',
       }
     }
-  } catch {
+  } catch (err) {
+    console.error('[admin] markShipped: caught exception', err)
     result.value = { type: 'error', title: 'Error', message: 'Could not reach the service.' }
   }
   shipping.value = null
