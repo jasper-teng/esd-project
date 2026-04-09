@@ -9,7 +9,7 @@ app.use('*', cors({ origin: '*' }))
 const portno: number = process.env.MANAGE_LOST_CARD_PORT ? Number(process.env.MANAGE_LOST_CARD_PORT) : 4007
  
 const CARD_MS                  = process.env.CARD_MS_URL                   || 'http://card_ms:3001'
-const TRIP_MS                  = process.env.TRIP_MS_URL                   || 'http://trip_ms:3005'
+const TRIP_MS                  = process.env.TRIP_MS_URL                   || 'https://personal-cpgsaftv.outsystemscloud.com/TripService/rest/TripServiceAPI'
 const WALLET_MS                = process.env.WALLET_MS_URL                 || 'http://wallet_ms:3002'
 const MANAGE_INCOMPLETE_MS     = process.env.MANAGE_INCOMPLETE_MS_URL      || 'http://manage_incomplete_composite:4002'
  
@@ -52,11 +52,11 @@ app.post('/manage-lost-card', async (c) => {
     // Step 4: Check if lost card has an incomplete trip
     const incompleteRes = await fetch(`${TRIP_MS}/trip/incomplete/${card_id}`)
     const incompleteJson: any = await incompleteRes.json()
-    const hasIncomplete: boolean = incompleteRes.ok && (incompleteJson.hasIncomplete ?? false)
-    const trip_id: string | null = incompleteJson.trip_id ?? null
+    // OutSystems returns 200 + flat object; trip_id of 0/falsy means no incomplete trip
+    const trip_id: string | null = incompleteJson?.trip_id ? String(incompleteJson.trip_id) : null
 
     // Step 5: Settle incomplete trip if present
-    if (hasIncomplete && trip_id) {
+    if (trip_id) {
       const settleRes = await fetch(`${MANAGE_INCOMPLETE_MS}/manage-incomplete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

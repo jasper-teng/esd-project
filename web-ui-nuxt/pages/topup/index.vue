@@ -376,6 +376,9 @@ onMounted(async () => {
     if (stored) user.value = JSON.parse(stored)
   } catch {}
 
+  // Show cached payment methods immediately while the server fetch is in flight
+  loadPMsFromCache()
+
   await fetchTravelCards()
 
   if (!config.public.stripeKey || config.public.stripeKey.includes('YOUR_')) {
@@ -405,14 +408,30 @@ onMounted(async () => {
 const savedPMs   = ref([])
 const loadingPMs = ref(false)
 
+function pmCacheKey() { return `savedPMs_${selectedUserId.value}` }
+
+function loadPMsFromCache() {
+  try {
+    const cached = localStorage.getItem(pmCacheKey())
+    if (cached) savedPMs.value = JSON.parse(cached)
+  } catch {}
+}
+
+function savePMsToCache(pms) {
+  try {
+    localStorage.setItem(pmCacheKey(), JSON.stringify(pms))
+  } catch {}
+}
+
 async function fetchSavedPMs() {
   loadingPMs.value = true
   try {
     const r = await fetch(`${GATEWAY}/payment-methods/${selectedUserId.value}`)
     const d = await r.json()
     savedPMs.value = d.payment_methods ?? []
+    savePMsToCache(savedPMs.value)
   } catch {
-    savedPMs.value = []
+    // Server unreachable — keep showing cached data
   } finally {
     loadingPMs.value = false
   }

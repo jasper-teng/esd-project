@@ -9,7 +9,7 @@ const portno: number = process.env.TAPIN_PORT ? Number(process.env.TAPIN_PORT) :
 
 const CARD_MS    = process.env.CARD_MS_URL    || 'http://card_ms:3001'
 const WALLET_MS  = process.env.WALLET_MS_URL  || 'http://wallet_ms:3002'
-const TRIP_MS    = process.env.TRIP_MS_URL    || 'http://trip_ms:3005'
+const TRIP_MS    = process.env.TRIP_MS_URL    || 'https://personal-cpgsaftv.outsystemscloud.com/TripService/rest/TripServiceAPI'
 const MANAGE_INCOMPLETE_MS = process.env.MANAGE_INCOMPLETE_MS_URL || 'http://manage_incomplete_composite:4002'
 
 const MINIMUM_BALANCE = 5.00
@@ -42,11 +42,10 @@ app.post('/tap-in', async (c) => {
 
     // Step 2: Check for incomplete trip
     const incompleteRes = await fetch(`${TRIP_MS}/trip/incomplete/${card_id}`)
+    const incompleteTrip: any = await incompleteRes.json()
 
-    if (incompleteRes.ok) {
-      const incompleteData: any = await incompleteRes.json()
-      const incompleteTrip = incompleteData.data
-
+    // OutSystems returns 200 + empty object when not found; treat trip_id of 0 / missing as no trip
+    if (incompleteTrip?.trip_id) {
       // Step 3: Resolve incomplete journey
       const resolveRes = await fetch(`${MANAGE_INCOMPLETE_MS}/manage-incomplete`, {
         method: 'POST',
@@ -100,7 +99,7 @@ app.post('/tap-in', async (c) => {
 
     const tripData: any = await tripRes.json()
 
-    return c.json({ status: 'access', trip: tripData.data, wallet: walletData })
+    return c.json({ status: 'access', trip: tripData, wallet: walletData })
 
   } catch (err) {
     console.error(err)

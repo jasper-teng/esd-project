@@ -175,11 +175,12 @@ async function linkCard() {
     if (!res.ok) {
       linkMsg.value = { type: 'error', text: json.message || 'Failed to link card' }
     } else {
-      linkMsg.value = { type: 'ok', text: `Card #${newCardId.value.trim()} linked successfully!` }
+      const linkedId = newCardId.value.trim()
+      linkMsg.value = { type: 'ok', text: `Card #${linkedId} linked successfully!` }
       newCardId.value = ''
       linkOpen.value = false
       // Update localStorage cards list
-      const updated = [...(user.value.cards ?? []), newCardId.value.trim()]
+      const updated = [...(user.value.cards ?? []), linkedId]
       user.value = { ...user.value, cards: updated }
       localStorage.setItem('user', JSON.stringify(user.value))
       await loadMyCards()

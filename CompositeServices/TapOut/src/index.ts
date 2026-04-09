@@ -10,7 +10,7 @@ const portno: number = process.env.TAPOUT_PORT ? Number(process.env.TAPOUT_PORT)
 
 const CARD_MS   = process.env.CARD_MS_URL   || 'http://card_ms:3001'
 const WALLET_MS = process.env.WALLET_MS_URL || 'http://wallet_ms:3002'
-const TRIP_MS   = process.env.TRIP_MS_URL   || 'http://trip_ms:3005'
+const TRIP_MS   = process.env.TRIP_MS_URL   || 'https://personal-cpgsaftv.outsystemscloud.com/TripService/rest/TripServiceAPI'
 const FARE_MS   = process.env.FARE_MS_URL   || 'http://fare_ms:5004'
 const LTA_MS    = process.env.LTA_MS_URL    || 'http://lta_ms:3007'
 
@@ -45,18 +45,17 @@ app.post('/tap-out', async (c) => {
 
     // Step 2: Get in-progress trip
     const tripRes = await fetch(`${TRIP_MS}/trip/in-progress/${card_id}`)
-    if (!tripRes.ok) {
+    const tripData: any = await tripRes.json()
+    // OutSystems returns 200 + empty object when no in-progress trip
+    if (!tripRes.ok || !tripData?.trip_id) {
       return c.json({ status: 'denied', reason: 'No in-progress trip found' }, 404)
     }
-    const tripJson: any = await tripRes.json()
-    const tripData = tripJson.data
 
     // Step 3: Check journey continuity
     const continuityRes = await fetch(
       `${TRIP_MS}/trip/continuity/${card_id}?transport_type=${transport_type}&tap_in_time=${encodeURIComponent(tap_out_time)}`
     )
-    const continuityJson: any = await continuityRes.json()
-    const continuity = continuityJson.data
+    const continuity: any = await continuityRes.json()
 
     const is_continuation = continuity.is_continuation ?? false
     const previous_cumulative_distance_km = is_continuation
@@ -101,25 +100,28 @@ app.post('/tap-out', async (c) => {
         is_public_holiday: false,
       })
     })
+    const fareJson: any = await fareRes.json()
     if (!fareRes.ok) {
       return c.json({ status: 'denied', reason: 'Fare calculation failed' }, 502)
     }
-    const fareJson: any = await fareRes.json()
     const fare_amount: number = fareJson.data.final_fare
 
     // Step 6: Deduct fare from wallet
-    const deductRes = await fetch(`${WALLET_MS}/deduct`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        card_id,
-        amount: fare_amount,
-        reason: 'tap_out',
-        reference_id: tripData.trip_id,
+    // If fare is 0 (e.g. already covered by incomplete-journey max fare), skip deduction
+    if (fare_amount > 0) {
+      const deductRes = await fetch(`${WALLET_MS}/deduct`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_id,
+          amount: fare_amount,
+          reason: 'tap_out',
+          reference_id: tripData.trip_id,
+        })
       })
-    })
-    if (!deductRes.ok) {
-      return c.json({ status: 'denied', reason: 'Failed to deduct fare' }, 502)
+      if (!deductRes.ok) {
+        return c.json({ status: 'denied', reason: 'Failed to deduct fare' }, 502)
+      }
     }
 
     // Step 7: Update trip record to completed

@@ -10,7 +10,7 @@ const portno: number = process.env.MANAGE_INCOMPLETE_PORT ? Number(process.env.M
 
 const FARE_MS   = process.env.FARE_MS_URL   || 'http://fare_ms:5004'
 const WALLET_MS = process.env.WALLET_MS_URL || 'http://wallet_ms:3002'
-const TRIP_MS   = process.env.TRIP_MS_URL   || 'http://trip_ms:3005'
+const TRIP_MS   = process.env.TRIP_MS_URL   || 'https://personal-cpgsaftv.outsystemscloud.com/TripService/rest/TripServiceAPI'
 
 app.get('/', (c) => c.text('Manage Incomplete Journey composite running!'))
 

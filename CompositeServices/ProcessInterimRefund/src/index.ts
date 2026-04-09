@@ -9,7 +9,7 @@ app.use('*', cors({ origin: '*' }))
 const portno = process.env.INTERIM_REFUND_PORT ? Number(process.env.INTERIM_REFUND_PORT) : 4006
 
 const USER_SERVICE_URL   = process.env.USER_SERVICE_URL   || 'http://user_ms:3006'
-const TRIP_SERVICE_URL   = process.env.TRIP_SERVICE_URL   || 'http://trip_ms:3005'
+const TRIP_SERVICE_URL   = process.env.TRIP_SERVICE_URL   || 'https://personal-cpgsaftv.outsystemscloud.com/TripService/rest/TripServiceAPI'
 const FARE_SERVICE_URL   = process.env.FARE_SERVICE_URL   || 'http://fare_ms:5004'
 const WALLET_SERVICE_URL = process.env.WALLET_SERVICE_URL || 'http://wallet_ms:3002'
 
@@ -80,7 +80,8 @@ async function processInterimRefund(card_id: string, concession_type: string): P
   const tripRes = await fetch(`${TRIP_SERVICE_URL}/trip/interim/${existing_card_id}?${params}`)
   const tripData: any = await tripRes.json()
 
-  const trips: any[] = tripData.data ?? []
+  // OutSystems returns a flat array (not { data: [] })
+  const trips: any[] = Array.isArray(tripData) ? tripData : (tripData.data ?? [])
 
   if (trips.length === 0) {
     return { success: true, refund_amount: 0, message: 'No completed trips found in interim period' }
