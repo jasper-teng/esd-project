@@ -60,9 +60,9 @@
                 <label class="toggle-switch" @click.stop>
                   <input
                     type="checkbox"
-                    :checked="autoConfig(card.id).enabled"
+                    :checked="card.autoTopupEnabled"
                     :disabled="savedPMs.length === 0"
-                    @change="toggleAutoTopup(card.id, $event)"
+                    @change="toggleAutoTopup(card, $event)"
                   />
                   <span class="slider"></span>
                 </label>
@@ -332,9 +332,10 @@ async function fetchTravelCards() {
     travelCards.value = [...seen.values()].map(c => {
       const wallet = wallets.find(w => String(w.card_id) === String(c.card_id))
       return {
-        id:      String(c.card_id),
-        label:   `Card #${c.card_id}`,
-        balance: parseFloat(wallet?.balance ?? 0),
+        id:               String(c.card_id),
+        label:            `Card #${c.card_id}`,
+        balance:          parseFloat(wallet?.balance ?? 0),
+        autoTopupEnabled: wallet?.auto_topup_enabled ?? false,
       }
     })
   } catch (err) {
@@ -346,7 +347,6 @@ async function fetchTravelCards() {
 
 function selectCard(id) {
   selectedCardId.value = selectedCardId.value === id ? '' : id
-  if (selectedCardId.value) loadAutoConfig(id)
 }
 
 // ---------------------------------------------------------------------------
@@ -457,39 +457,29 @@ function autoConfig(cardId) {
   return autoConfigCache.value[cardId] ?? { enabled: false }
 }
 
-async function loadAutoConfig(cardId) {
-  try {
-    const r = await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`)
-    const d = await r.json()
-    autoConfigCache.value[cardId] = d
-    if (autoSettingsCardId.value === cardId) editConfig.value = { ...d }
-  } catch {}
-}
 
 function openAutoSettings(cardId) {
   autoSettingsCardId.value = cardId
   editConfig.value = { ...(autoConfigCache.value[cardId] ?? { enabled: false, threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' }) }
 }
 
-async function toggleAutoTopup(cardId, e) {
+async function toggleAutoTopup(card, e) {
   const enabled = e.target.checked
-  toggleError.value = { ...toggleError.value, [cardId]: '' }
-  const current = autoConfigCache.value[cardId] ?? { threshold_sgd: 5, topup_amount_sgd: 20, payment_method_id: '' }
-  const updated = { ...current, enabled }
+  toggleError.value = { ...toggleError.value, [card.id]: '' }
 
-  const res = await fetch(`${GATEWAY}/auto-topup/${selectedUserId.value}/${cardId}`, {
-    method: 'PUT',
+  const res = await fetch(`${GATEWAY}/auto-topup/${card.id}`, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updated),
+    body: JSON.stringify({ enabled }),
   })
   const data = await res.json()
 
   if (!res.ok) {
-    autoConfigCache.value = { ...autoConfigCache.value, [cardId]: { ...current, enabled: false } }
-    toggleError.value = { ...toggleError.value, [cardId]: data.error ?? 'Could not update auto top-up setting.' }
+    e.target.checked = !enabled  // revert checkbox
+    toggleError.value = { ...toggleError.value, [card.id]: data.reason ?? 'Could not update auto top-up setting.' }
     return
   }
-  autoConfigCache.value = { ...autoConfigCache.value, [cardId]: updated }
+  card.autoTopupEnabled = enabled
 }
 
 async function saveAutoSettings() {

@@ -102,6 +102,31 @@ app.post('/topup', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
+// PATCH /wallet/:card_id/auto-topup — enable or disable auto top-up
+// ---------------------------------------------------------------------------
+app.patch('/wallet/:card_id/auto-topup', async (c) => {
+  const card_id = c.req.param('card_id')
+  const { enabled } = await c.req.json()
+
+  if (typeof enabled !== 'boolean') {
+    return c.json({ message: 'enabled (boolean) is required' }, 400)
+  }
+
+  const rows = await db.select().from(wallet).where(eq(wallet.card_id, card_id))
+  if (rows.length === 0) {
+    return c.json({ message: 'Wallet not found' }, 404)
+  }
+
+  const [updated] = await db
+    .update(wallet)
+    .set({ auto_topup_enabled: enabled })
+    .where(eq(wallet.card_id, card_id))
+    .returning()
+
+  return c.json({ message: 'Auto top-up setting updated', wallet: { ...updated, min_balance: MIN_BALANCE.toFixed(2) } })
+})
+
+// ---------------------------------------------------------------------------
 // PUT /deduct — deduct fare from wallet
 // ---------------------------------------------------------------------------
 app.put('/deduct', async (c) => {

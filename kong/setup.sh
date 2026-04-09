@@ -33,11 +33,11 @@ add_service() {
   local methods=${4:-'["GET","POST","PUT","PATCH","DELETE","OPTIONS"]'}
 
   echo ">>> Creating service: $name  →  $upstream"
-  curl -sf -X POST "$KONG_ADMIN/services" \
+  curl -s -X POST "$KONG_ADMIN/services" \
     -H "Content-Type: application/json" \
     -d "{\"name\": \"$name\", \"url\": \"$upstream\"}" > /dev/null
 
-  curl -sf -X POST "$KONG_ADMIN/services/$name/routes" \
+  curl -s -X POST "$KONG_ADMIN/services/$name/routes" \
     -H "Content-Type: application/json" \
     -d "{\"name\": \"${name}-route\", \"paths\": $paths, \"methods\": $methods, \"strip_path\": false}" > /dev/null
   echo ""
@@ -59,7 +59,7 @@ add_upstream_service() {
   local upstream_name="${name}-upstream"
 
   echo ">>> Creating upstream: $upstream_name  (health check: $health_path)"
-  curl -sf -X POST "$KONG_ADMIN/upstreams" \
+  curl -s -X POST "$KONG_ADMIN/upstreams" \
     -H "Content-Type: application/json" \
     -d "{
       \"name\": \"$upstream_name\",
@@ -89,16 +89,16 @@ add_upstream_service() {
     }" > /dev/null
 
   echo "    Target: $target"
-  curl -sf -X POST "$KONG_ADMIN/upstreams/$upstream_name/targets" \
+  curl -s -X POST "$KONG_ADMIN/upstreams/$upstream_name/targets" \
     -H "Content-Type: application/json" \
     -d "{\"target\": \"$target\", \"weight\": 100}" > /dev/null
 
   echo "    Service + Route: $name  paths=$paths"
-  curl -sf -X POST "$KONG_ADMIN/services" \
+  curl -s -X POST "$KONG_ADMIN/services" \
     -H "Content-Type: application/json" \
     -d "{\"name\": \"$name\", \"host\": \"$upstream_name\", \"port\": 80, \"protocol\": \"http\"}" > /dev/null
 
-  curl -sf -X POST "$KONG_ADMIN/services/$name/routes" \
+  curl -s -X POST "$KONG_ADMIN/services/$name/routes" \
     -H "Content-Type: application/json" \
     -d "{\"name\": \"${name}-route\", \"paths\": $paths, \"methods\": $methods, \"strip_path\": false}" > /dev/null
   echo ""
@@ -118,7 +118,7 @@ add_rate_limit() {
   if [ "$per_hour" -gt 0 ]; then
     payload="{\"name\": \"rate-limiting\", \"config\": {\"minute\": $per_minute, \"hour\": $per_hour, \"policy\": \"local\", \"fault_tolerant\": true, \"hide_client_headers\": false}}"
   fi
-  curl -sf -X POST "$KONG_ADMIN/routes/${route_name}/plugins" \
+  curl -s -X POST "$KONG_ADMIN/routes/${route_name}/plugins" \
     -H "Content-Type: application/json" \
     -d "$payload" > /dev/null
 }
@@ -146,7 +146,8 @@ add_service "lta-service"    "http://lta_ms:3007"               '["/lta"]'
 
 # --- Payment Gateway (direct URL) ---
 add_service "payment-service" "http://payment_gateway:3010" \
-  '["/setup-intent", "/payment-methods", "/charge", "/topup/intent", "/topup/confirm", "/topup/saved", "/topup/auto", "/auto-topup", "/webhook"]'
+  '["/setup-intent", "/payment-methods", "/charge", "/topup/intent", "/topup/confirm", "/topup/saved", "/topup/auto", "/webhook"]'
+add_service "auto-topup-service" "http://auto_topup_composite:4004" '["/auto-topup"]'
 
 # --- BEYOND LABS: High-traffic composites use Upstreams with health checks ---
 # Kong actively polls the health endpoint every 10s.
@@ -171,7 +172,7 @@ echo "======================================="
 
 # --- CORS ---
 echo ">>> [Global] CORS plugin"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "cors",
@@ -188,7 +189,7 @@ echo ""
 
 # --- Key Authentication (from labs — unchanged) ---
 echo ">>> [Global] Key Auth plugin"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{"name": "key-auth", "config": {"key_names": ["apikey"], "hide_credentials": true}}' > /dev/null
 echo ""
@@ -201,7 +202,7 @@ echo ""
 # Wallet logs. Without this, correlating distributed logs is guesswork.
 # =============================================================================
 echo ">>> [Global] Correlation ID plugin  (BEYOND LABS — distributed tracing)"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "correlation-id",
@@ -226,7 +227,7 @@ echo ""
 #   - kong_upstream_target_health (0=unhealthy, 1=healthy)
 # =============================================================================
 echo ">>> [Global] Prometheus plugin  (BEYOND LABS — observability)"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "prometheus",
@@ -250,7 +251,7 @@ echo ""
 #   X-Powered-By: FunFare-Kong    — gateway attribution
 # =============================================================================
 echo ">>> [Global] Response Transformer plugin  (BEYOND LABS — API metadata)"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "response-transformer",
@@ -277,7 +278,7 @@ echo ""
 # passes clean identity headers through.
 # =============================================================================
 echo ">>> [Global] Request Transformer plugin  (BEYOND LABS — header injection)"
-curl -sf -X POST "$KONG_ADMIN/plugins" \
+curl -s -X POST "$KONG_ADMIN/plugins" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "request-transformer",
@@ -304,22 +305,22 @@ echo "  STEP 3: Consumers + Credentials"
 echo "======================================="
 
 echo ">>> Creating consumer: user  (regular transit user)"
-curl -sf -X POST "$KONG_ADMIN/consumers" \
+curl -s -X POST "$KONG_ADMIN/consumers" \
   -H "Content-Type: application/json" \
   -d '{"username": "user"}' > /dev/null
-curl -sf -X POST "$KONG_ADMIN/consumers/user/key-auth" \
+curl -s -X POST "$KONG_ADMIN/consumers/user/key-auth" \
   -H "Content-Type: application/json" \
   -d '{"key": "user123"}' > /dev/null
 echo ""
 
 echo ">>> Creating consumer: admin  (admin panel access)"
-curl -sf -X POST "$KONG_ADMIN/consumers" \
+curl -s -X POST "$KONG_ADMIN/consumers" \
   -H "Content-Type: application/json" \
   -d '{"username": "admin"}' > /dev/null
-curl -sf -X POST "$KONG_ADMIN/consumers/admin/key-auth" \
+curl -s -X POST "$KONG_ADMIN/consumers/admin/key-auth" \
   -H "Content-Type: application/json" \
   -d '{"key": "admin123"}' > /dev/null
-curl -sf -X POST "$KONG_ADMIN/consumers/admin/acls" \
+curl -s -X POST "$KONG_ADMIN/consumers/admin/acls" \
   -H "Content-Type: application/json" \
   -d '{"group": "admins"}' > /dev/null
 echo ""

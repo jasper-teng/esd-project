@@ -53,6 +53,16 @@ export async function startLowBalanceListener() {
     const { card_id, balance } = payload
     console.log(`[listener] Low balance detected — card_id=${card_id}, balance=${balance}`)
 
+    // Check if auto top-up is enabled for this wallet
+    const walletCheck = await client.query(
+      'SELECT auto_topup_enabled FROM wallets WHERE card_id = $1',
+      [card_id]
+    )
+    if (!walletCheck.rows[0]?.auto_topup_enabled) {
+      console.log(`[listener] Auto top-up disabled for card_id=${card_id}, skipping`)
+      return
+    }
+
     try {
       const res = await fetch(`${AUTO_TOPUP_URL}/auto-topup`, {
         method: 'POST',

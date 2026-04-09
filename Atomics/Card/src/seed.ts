@@ -99,7 +99,7 @@ async function seed() {
   console.log('\nSeeding wallets...');
   const walletRows = insertedCards.map(c => ({
     card_id: String(c.id),
-    balance: '50.00',
+    balance: '7.00',
   }));
 
   const insertedWallets = await walletDb
