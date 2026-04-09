@@ -1,21 +1,38 @@
 import pg from 'pg'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 const { Client } = pg
 
 const AUTO_TOPUP_URL = process.env.AUTO_TOPUP_URL ?? 'http://auto_topup_composite:4004'
 const AUTO_TOPUP_AMOUNT = 20.00 // SGD amount to top up when triggered
 
+const TRIGGER_SQL = `
+  CREATE OR REPLACE FUNCTION notify_low_balance()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    IF NEW.balance::numeric < 5.00 AND OLD.balance::numeric >= 5.00 THEN
+      PERFORM pg_notify(
+        'low_balance',
+        json_build_object('card_id', NEW.card_id, 'balance', NEW.balance)::text
+      );
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+  DROP TRIGGER IF EXISTS wallet_low_balance_trigger ON wallets;
+
+  CREATE TRIGGER wallet_low_balance_trigger
+    AFTER UPDATE ON wallets
+    FOR EACH ROW
+    EXECUTE FUNCTION notify_low_balance();
+`
+
 export async function startLowBalanceListener() {
   const client = new Client({ connectionString: process.env.WALLET_DATABASE_URL })
   await client.connect()
 
   // Install the trigger function + trigger on startup
-  const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const sql = fs.readFileSync(path.join(__dirname, 'trigger.sql'), 'utf-8')
-  await client.query(sql)
+  await client.query(TRIGGER_SQL)
   console.log('[listener] DB trigger installed: wallet_low_balance_trigger')
 
   // Subscribe to the low_balance channel
