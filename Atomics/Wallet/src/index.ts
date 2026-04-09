@@ -5,6 +5,7 @@ import { cors } from 'hono/cors'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { eq } from 'drizzle-orm'
 import { wallet } from './db/schema.js'
+import { startLowBalanceListener } from './db/listener.js'
 
 const db = drizzle(process.env.WALLET_DATABASE_URL!)
 
@@ -149,4 +150,7 @@ app.put('/deduct', async (c) => {
 // ---------------------------------------------------------------------------
 serve({ fetch: app.fetch, port: portno }, () => {
   console.log(`Wallet Service running on http://localhost:${portno}`)
+  startLowBalanceListener().catch((err) => {
+    console.error('[listener] Failed to start low balance listener:', err)
+  })
 })
