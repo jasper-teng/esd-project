@@ -200,7 +200,7 @@ const schools = [
   'Singapore Management University (SMU)', 'Singapore University of Technology & Design (SUTD)',
   'Singapore Institute of Technology (SIT)', 'Singapore University of Social Sciences (SUSS)',
   'Ngee Ann Polytechnic', 'Singapore Polytechnic', 'Temasek Polytechnic',
-  'Republic Polytechnic', 'Nanyang Polytechnic',
+  'Republic Polytechnic', 'Nanyang Polytechnic', 'Temasek Secondary School', 'Tanjong Katong Secondary School', 'Bedok Green Secondary School', 'Bedok South Secondary School'
 ]
 
 const paymentMethods = [

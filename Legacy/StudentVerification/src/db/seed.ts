@@ -4,10 +4,10 @@ import { students } from "./schema.js";
 
 // School names MUST match exactly what apply.vue sends
 const seedData = [
-  { identification_number: "S1234567A", school: "Singapore Management University (SMU)" },
-  { identification_number: "S9876543B", school: "Nanyang Technological University (NTU)" },
-  { identification_number: "T1111111C", school: "National University of Singapore (NUS)" },
-  { identification_number: "S2222222D", school: "Singapore Polytechnic" },
+  { identification_number: "S1234567A", school: "Temasek Secondary School" },
+  { identification_number: "S1234567A", school: "Tanjong Katong Secondary School" },
+  { identification_number: "S9876543B", school: "Bedok Green Secondary School" },
+  { identification_number: "S9876543B", school: "Bedok South Secondary School" },
   { identification_number: "S3333333E", school: "Ngee Ann Polytechnic" },
   { identification_number: "T4444444F", school: "Republic Polytechnic" },
   { identification_number: "S5555555G", school: "Temasek Polytechnic" },
