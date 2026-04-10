@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { publishNotification } from './amqp.js'
+import { publishNotification, startAutoTopupConsumer } from './amqp.js'
 
 const app = new Hono()
 
@@ -90,4 +90,36 @@ serve({
   port: portno,
 }, () => {
   console.log(`Manage Auto-Top-up composite running on http://localhost:${portno}`)
+
+  // Start AMQP consumer for DB-triggered auto top-up events
+  startAutoTopupConsumer(async ({ card_id, amount }) => {
+    try {
+      const walletRes = await fetch(`http://wallet_ms:3002/wallet/${card_id}`)
+      if (!walletRes.ok) {
+        console.warn(`[consumer] Wallet not found for card_id=${card_id}`)
+        return
+      }
+
+      const topupRes = await fetch(`http://wallet_ms:3002/topup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: String(card_id), amount: String(amount) }),
+      })
+      if (!topupRes.ok) {
+        console.warn(`[consumer] Top-up failed for card_id=${card_id}`)
+        return
+      }
+
+      await publishNotification({
+        notification_type: 'auto_topup_success',
+        card_id,
+        subject: 'Auto Top-Up Successful',
+        body: `Your card has been automatically topped up by SGD ${Number(amount).toFixed(2)}.`,
+      })
+
+      console.log(`[consumer] Auto top-up complete for card_id=${card_id}`)
+    } catch (err) {
+      console.error(`[consumer] Error processing auto top-up for card_id=${card_id}:`, err)
+    }
+  }).catch(err => console.error('[consumer] Failed to start AMQP consumer:', err))
 })

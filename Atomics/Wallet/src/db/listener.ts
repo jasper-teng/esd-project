@@ -1,9 +1,11 @@
 import pg from 'pg'
+import amqplib from 'amqplib'
 
 const { Client } = pg
 
-const AUTO_TOPUP_URL = process.env.AUTO_TOPUP_URL ?? 'http://auto_topup_composite:4004'
-const AUTO_TOPUP_AMOUNT = 20.00 // SGD amount to top up when triggered
+const RABBITMQ_URL      = process.env.RABBITMQ_URL ?? 'amqp://guest:guest@rabbitmq:5672/'
+const AUTO_TOPUP_QUEUE  = 'auto_topup'
+const AUTO_TOPUP_AMOUNT = 20.00
 
 const TRIGGER_SQL = `
   CREATE OR REPLACE FUNCTION notify_low_balance()
@@ -26,6 +28,26 @@ const TRIGGER_SQL = `
     FOR EACH ROW
     EXECUTE FUNCTION notify_low_balance();
 `
+
+async function publishAutoTopup(payload: object): Promise<void> {
+  let connection
+  try {
+    connection = await amqplib.connect(RABBITMQ_URL)
+    const channel = await connection.createChannel()
+    await channel.assertQueue(AUTO_TOPUP_QUEUE, { durable: true })
+    channel.sendToQueue(
+      AUTO_TOPUP_QUEUE,
+      Buffer.from(JSON.stringify(payload)),
+      { persistent: true }
+    )
+    console.log(`[listener] Published to AMQP queue '${AUTO_TOPUP_QUEUE}':`, payload)
+    await channel.close()
+  } catch (err) {
+    console.error('[listener] Failed to publish to AMQP:', err)
+  } finally {
+    if (connection) await connection.close()
+  }
+}
 
 export async function startLowBalanceListener() {
   const client = new Client({ connectionString: process.env.WALLET_DATABASE_URL })
@@ -63,25 +85,12 @@ export async function startLowBalanceListener() {
       return
     }
 
-    try {
-      const res = await fetch(`${AUTO_TOPUP_URL}/auto-topup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          card_id,
-          amount: AUTO_TOPUP_AMOUNT,
-          payment_method: 'saved',
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        console.log(`[listener] Auto top-up triggered for card_id=${card_id}:`, data)
-      } else {
-        console.warn(`[listener] Auto top-up failed for card_id=${card_id}:`, data)
-      }
-    } catch (err) {
-      console.error(`[listener] Error calling auto-topup composite for card_id=${card_id}:`, err)
-    }
+    // Publish to AMQP — Manage Auto-Top-up composite will consume this
+    await publishAutoTopup({
+      card_id,
+      amount: AUTO_TOPUP_AMOUNT,
+      payment_method: 'saved',
+    })
   })
 
   client.on('error', (err) => {
