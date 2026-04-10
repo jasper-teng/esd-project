@@ -262,7 +262,7 @@ services:
     networks:
       - esd-network
 
-  trip_ms:
+  trip_ms: #LEGACY - THIS IS NOT USED IN THE CODE
     build:
       context: ./Atomics/Trip Service
       dockerfile: Trip.Dockerfile
@@ -502,7 +502,7 @@ networks:
 volumes:
   carddb_data:
   walletdb_data:
-  tripdb_data:
+  tripdb_data: # LEGACY - THIS IS NOT USED IN THE CODE
   userdb_data:
   kong_data:
   prometheus_data:
