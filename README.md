@@ -1,5 +1,5 @@
 # Start Up Guide
-1. Ensure that the docker.env file exists in the folder
+1. Ensure that the .env.docker file exists in the folder
 2. Run ```docker compose up```
 3. After all services are up, run ```bash ./kong/setup.sh ``` to setup kong.
 
